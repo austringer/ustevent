@@ -1,0 +1,86 @@
+# C/C++
+# Compiled Object Files
+*.slo
+*.ko
+*.lo
+*.o
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic Libraries
+*.so
+*.so.*
+*.dylib
+*.dll
+
+# Compiled Static Libraries
+*.lai
+*.la
+*.lo
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# CMake
+CMakeCache.txt
+CMakeFiles
+Makefile
+cmake_install.cmake
+install_manifest.txt
+
+# Visual Studio
+# user-specifice
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vs/
+
+# Visual C++ cache files
+ipch/
+*.aps
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
+
+# Visual Studio profiler
+*.psess
+*.vsp
+*.vspx
+*.sap
+
+# KDE
+.directory
+
+# Protobuf Generated Files
+*.pb.h
+*.pb.cc
+
+# PLY Generated Files
+parsetab.py
+parser.out
