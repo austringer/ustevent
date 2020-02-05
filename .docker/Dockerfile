@@ -1,4 +1,4 @@
-FROM ubuntu:18.04 AS runtime
+FROM ubuntu:18.04 AS base
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -27,10 +27,13 @@ RUN mv /etc/apt/sources.list /etc/apt/sources.list.bak \
         dirmngr \
         procps \
         nano \
+        zlib1g \
+        bzip2 \
+        libunwind8 \
     && apt-get clean && rm -rf /tmp/* /var/tmp/* && rm -rf /var/lib/apt/lists/*
 
 
-FROM runtime AS development_base
+FROM base AS development_base
 
 ARG PythonMajorVersion=3
 ARG PythonMinorVersion=6
@@ -42,8 +45,6 @@ ENV PYTHONPATH="${LOCAL_PYTHONPATH}:${PYTHONPATH}"
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        zlib1g \
-        bzip2 \
         git \
         git-lfs \
         pkgconf \
@@ -63,7 +64,9 @@ RUN apt-get update \
         python3-setuptools \
         libc-dev \
         libssl-dev \
+        libunwind-dev \
     && apt-get clean && rm -rf /tmp/* /var/tmp/* && rm -rf /var/lib/apt/lists/*
+    && pip install pylint
 
 
 FROM development_base AS development_boost

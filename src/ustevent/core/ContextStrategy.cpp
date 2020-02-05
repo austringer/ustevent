@@ -161,7 +161,7 @@ void ContextStrategy::_recordBacktrace()
   assert(debug_info);
   if (!debug_info->terminated())
   {
-    debug_info->backtrace();
+    debug_info->updateFrame();
     // append to the waiting fibers list
     _waiting_fibers_tail->_next = debug_info;
     debug_info->_prev = _waiting_fibers_tail;

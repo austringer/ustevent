@@ -9,7 +9,7 @@
       "name": "Unit Test",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/out/bin/test/TestContext",
+      "program": "${workspaceFolder}/out/bin/test/UsteventUnitTest",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}/out/bin/test",

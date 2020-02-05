@@ -14,4 +14,5 @@ target_link_libraries(ustevent_core
   PUBLIC  Threads::Threads
   PRIVATE boost_context
   PRIVATE boost_fiber
+  PRIVATE unwind
 )

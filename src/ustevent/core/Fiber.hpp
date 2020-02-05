@@ -17,7 +17,7 @@ void Fiber::start(Fn && function, Args ... args)
   {
     ::std::apply(::std::move(function), ::std::move(args));
 
-    // The fiber is going to finish. backtrace() will omit the fibers which the _terminated is true
+    // The fiber is going to finish. ContextStrategy will omit the fibers which the _terminated is true
     FiberDebugInfo & debug_info = ::boost::this_fiber::properties<FiberDebugInfo>();
     debug_info.setTerminated(true);
   };

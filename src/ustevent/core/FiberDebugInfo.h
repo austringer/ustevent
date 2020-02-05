@@ -4,6 +4,9 @@
 #include <string>
 #include "boost/fiber/properties.hpp"
 
+#define UNW_LOCAL_ONLY
+#include <libunwind.h>
+
 namespace ustevent
 {
 
@@ -13,7 +16,7 @@ public:
   explicit
   FiberDebugInfo(::boost::fibers::context * context);
 
-  void backtrace();
+  void updateFrame();
 
   void setDescription(::std::string description);
 
@@ -35,8 +38,26 @@ private:
 
   int               _size = 0;
   void *            _backtrace[64];
+
+  unw_context_t     _unwind_context;
 };
 
 }
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void ustevent_backtraceFiber(
+  unw_context_t * unwind_context,
+  uintptr_t *     ip_stack,
+  size_t          ip_stack_length,
+  size_t *        frame_depth);
+
+// void ustevent_backtrace(unw_context_t * context);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // USTEVENT_CORE_FIBERDEBUGINFO_H_

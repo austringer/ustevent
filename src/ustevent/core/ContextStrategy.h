@@ -46,6 +46,8 @@ protected:
   virtual void onNotified() noexcept = 0;
 
 private:
+  const ::std::uint64_t         _magic = 0x544E455645545355;
+
   Context &                     _context;
 
   ::std::size_t                 _id;
