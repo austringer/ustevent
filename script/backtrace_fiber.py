@@ -1,84 +1,5 @@
 import gdb
 import re
-import ctypes
-
-libunwind = ctypes.CDLL('libunwind.so')
-
-class stack_t(ctypes.Structure):
-    pass
-stack_t._fields_ = [
-    ('ss_sp',       ctypes.c_void_p),
-    ('ss_flags',    ctypes.c_int),
-    ('ss_size',     ctypes.c_size_t)
-]
-
-class _libc_fpxreg(ctypes.Structure):
-    pass
-_libc_fpxreg._fields_ = [
-    ('significand', ctypes.ARRAY(ctypes.c_ushort, 4)),
-    ('exponent',    ctypes.c_ushort),
-    ('__glibc_reserved1', ctypes.ARRAY(ctypes.c_ushort, 3))
-]
-
-class _libc_xmmreg(ctypes.Structure):
-    pass
-_libc_xmmreg._fields_ = [
-    ('element',     ctypes.ARRAY(ctypes.c_uint32, 4))
-]
-
-class _libc_fpstate(ctypes.Structure):
-    pass
-_libc_fpstate._fields_ = [
-    ('cwd',         ctypes.c_uint16),
-    ('swd',         ctypes.c_uint16),
-    ('ftw',         ctypes.c_uint16),
-    ('fop',         ctypes.c_uint16),
-    ('rip',         ctypes.c_uint64),
-    ('rdp',         ctypes.c_uint64),
-    ('mxcsr',       ctypes.c_uint32),
-    ('mxcr_mask',   ctypes.c_uint32),
-    ('_st',         ctypes.ARRAY(_libc_fpxreg, 8)),
-    ('_xmm',        ctypes.ARRAY(_libc_xmmreg, 16)),
-    ('__glibc_reserved1', ctypes.ARRAY(ctypes.c_uint32, 24))
-]
-
-class mcontext_t(ctypes.Structure):
-    pass
-mcontext_t._fields_ = [
-    ('gregs',   ctypes.ARRAY(ctypes.c_longlong, 23)),
-    ('fpregs',  ctypes.POINTER(_libc_fpstate)),
-    ('__reserved1', ctypes.ARRAY(ctypes.c_ulonglong, 8))
-]
-
-class sigset_t(ctypes.Structure):
-    pass
-sigset_t._fields_ = [
-    ('__val', ctypes.ARRAY(ctypes.c_ulong, 16))
-]
-
-class ucontext_t(ctypes.Structure):
-    pass
-ucontext_t._fields_ = [
-    ('uc_flags',        ctypes.c_ulong),
-    ('uc_link',         ctypes.POINTER(ucontext_t)),
-    ('uc_stack',        stack_t),
-    ('uc_mcontext',     mcontext_t),
-    ('uc_sigmask',      sigset_t),
-    ('__fpregs_mem',    _libc_fpstate)
-]
-
-class unw_cursor_t(ctypes.Structure):
-    pass
-unw_cursor_t._fields_ = [
-    ('opaque', ctypes.ARRAY(ctypes.c_uint64, 127))
-]
-
-unw_init_local = libunwind._ULx86_64_init_local
-
-unw_step = libunwind._ULx86_64_step
-unw_step.restype = ctypes.c_int
-
-unw_get_reg = libunwind._ULx86_64_get_reg
 
 line_pattern    = re.compile(r'Line (\d+) of \"(.*)\" starts at address 0x[0-9a-f]+ <(.*)\+\d+> and ends at .*')
 symbol_pattern  = re.compile(r'(.*) \+ \d+ in .* of (.*)')
@@ -189,17 +110,6 @@ def pretty_stack(backtrace, size):
             print(frame)
             frame_number += 1
 
-def backtrace_unwind_context(unwind_context):
-    cursor = unw_cursor_t()
-    unw_init_local(ctypes.addressof(cursor), unwind_context.address)
-    rip = ctypes.c_uint64()
-
-    n = 0
-    while unw_step(ctypes.addressof(cursor)).value != 0:
-        unw_get_reg(ctypes.addressof(cursor), ctypes.c_int(16), ctypes.addressof(rip)) # UNW_REG_IP = 16
-        pretty_frame(rip.value, n)
-        n += 1
-
 def print_active_fiber(count):
     print('Active Fiber:')
     active_context_pointer = gdb.parse_and_eval('::boost::fibers::context::active()')
@@ -228,14 +138,12 @@ def print_waiting_fibers(count):
         for debug_info in waiting_fiber_debug_infos:
             context_pointer = debug_info['ctx_']
             description     = debug_info['_description']
-            # backtrace       = debug_info['_backtrace']
-            # size            = int(debug_info['_size'])
-            unwind_context  = debug_info['_unwind_context']
+            backtrace       = debug_info['_backtrace']
+            size            = int(debug_info['_size'])
 
             print('Fiber {0} {1} {2}'.format(count + 1, hex(context_pointer), description))
 
-            # pretty_stack(backtrace, size)
-            backtrace_unwind_context(unwind_context)
+            pretty_stack(backtrace, size)
             count += 1
             print('')
     return count
@@ -250,14 +158,14 @@ def print_ready_fibers(count):
         for debug_info in ready_fiber_debug_infos:
             context_pointer = debug_info['ctx_']
             description     = debug_info['_description']
-            # backtrace       = debug_info['_backtrace']
-            # size            = int(debug_info['_size'])
-            unwind_context  = debug_info['_unwind_context']
+            backtrace       = debug_info['_backtrace']
+            size            = int(debug_info['_size'])
+
+            print("stack size", size)
 
             print('Fiber {0} {1} {2}'.format(count + 1, hex(context_pointer), description))
 
-            # pretty_stack(backtrace, size)
-            backtrace_unwind_context(unwind_context)
+            pretty_stack(backtrace, size)
             count += 1
             print('')
     return count

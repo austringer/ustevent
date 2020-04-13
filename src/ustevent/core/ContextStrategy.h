@@ -16,7 +16,8 @@ class Context;
 class ContextStrategy : public ::boost::fibers::algo::algorithm_with_properties<FiberDebugInfo>
 {
 public:
-  ContextStrategy(Context & context, bool debugging);
+  explicit
+  ContextStrategy(Context & context);
 
   ~ContextStrategy() noexcept override;
 
@@ -46,13 +47,11 @@ protected:
   virtual void onNotified() noexcept = 0;
 
 private:
-  const ::std::uint64_t         _magic = 0x544E455645545355;
+  const ::std::uint64_t         _magic = 0x544E455645545355;  // "USTEVENT" in ascii
 
   Context &                     _context;
 
   ::std::size_t                 _id;
-
-  bool                          _debugging;
 
   FiberDebugInfo                _waiting_fibers_head;
   FiberDebugInfo *              _waiting_fibers_tail = &_waiting_fibers_head;

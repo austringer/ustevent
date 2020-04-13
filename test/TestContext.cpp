@@ -1,8 +1,12 @@
 #include "catch2/catch.hpp"
 
+#include <iostream>
+#include <chrono>
 #include <thread>
 
+#include "ustevent/core/fiber/Sleep.h"
 #include "ustevent/core/thread/Future.h"
+#include "ustevent/core/thread/Sleep.h"
 #include "ustevent/core/Context.h"
 #include "ustevent/core/BlockingContextStrategy.h"
 
@@ -10,42 +14,52 @@ using namespace ustevent;
 
 SCENARIO("Test Ustevent Context", "[core]")
 {
-  GIVEN("a ustevent::Context")
+  THEN("post a lambda into Context to change its value")
   {
-    Context ctx;
+    Context ctx(1, Context::DEBUG_ON);
 
-    WHEN("ctx is runned in a thread with blocking strategy")
-    {
-      ::std::thread t([&ctx]() { ctx.run<BlockingContextStrategy>(ctx, true, true); });
+    ::std::thread t([&ctx]() { ctx.run<BlockingContextStrategy>(ctx); });
 
-      AND_WHEN("given a variable")
-      {
-        int i = 0;
-        thread::Promise<void> finished;
+    int i = 0;
+    fiber::Promise<void> finished;
 
-        THEN("post a lambda into ctx to change its value")
-        {
-          ctx.post([&i, &finished](){ i = 100; finished.set_value(); });
-          finished.get_future().wait();
+    ctx.run();
 
-          REQUIRE(i == 100);
+    ctx.post([&i](){
+      i += 100;
+      // fiber::sleepFor(::std::chrono::seconds(1000));
+    });
 
-          ctx.terminate();
-          t.join();
-          REQUIRE_FALSE(t.joinable());
-        }
+    ctx.post([&i, &finished](){
+      i += 100;
+      finished.set_value();
+    });
+    finished.get_future().wait();
 
-        THEN("call a lambda with ctx to change its value")
-        {
-          auto ret = ctx.call([&i](){ i = 100; return i; });
-          REQUIRE(i == 100);
-          REQUIRE(ret == 100);
+    REQUIRE(i == 200);
 
-          ctx.terminate();
-          t.join();
-          REQUIRE_FALSE(t.joinable());
-        }
-      }
-    }
+    ctx.terminate();
+    t.join();
+  }
+
+  THEN("call a lambda with Context to change its value")
+  {
+    Context ctx(1, Context::DEBUG_ON);
+    ::std::thread t([&ctx]() { ctx.run<BlockingContextStrategy>(ctx); });
+
+    int i = 0;
+    thread::Promise<void> finished;
+
+    ctx.run();
+
+    auto ret = ctx.call([&i](){
+      i = 100;
+      return i;
+    });
+    REQUIRE(i == 100);
+    REQUIRE(ret == 100);
+
+    ctx.terminate();
+    t.join();
   }
 }

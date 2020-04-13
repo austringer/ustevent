@@ -18,8 +18,8 @@ public:
   auto wait()
     -> bool;
 
-  BasicBarrier(Barrier const&) = delete;
-  auto operator=(Barrier const&)
+  BasicBarrier(BasicBarrier const&) = delete;
+  auto operator=(BasicBarrier const&)
     -> BasicBarrier & = delete;
 
 private:

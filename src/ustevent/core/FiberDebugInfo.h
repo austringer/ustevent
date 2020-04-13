@@ -36,28 +36,10 @@ private:
   ::std::string     _description;
   bool              _terminated = false;
 
-  int               _size = 0;
-  void *            _backtrace[64];
-
-  unw_context_t     _unwind_context;
+  ::std::size_t     _size = 0;
+  unw_word_t        _backtrace[64];
 };
 
 }
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void ustevent_backtraceFiber(
-  unw_context_t * unwind_context,
-  uintptr_t *     ip_stack,
-  size_t          ip_stack_length,
-  size_t *        frame_depth);
-
-// void ustevent_backtrace(unw_context_t * context);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // USTEVENT_CORE_FIBERDEBUGINFO_H_

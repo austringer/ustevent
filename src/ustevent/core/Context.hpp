@@ -19,6 +19,8 @@ void Context::run(Args && ... args)
 
   ::boost::fibers::use_scheduling_algorithm<Strategy>(::std::forward<Args>(args)...);
 
+  _barrier.wait();
+
   ::std::unique_lock<thread::Mutex> lock(_done_mutex);
   _done_cv.wait(lock, [this](){ return _done; });
 }
@@ -115,10 +117,7 @@ void Context::_postInRemote(Callable && fiber_task, TaskParameters && params)
     _fiber_task_list.emplace_back(::std::move(fiber_task), ::std::move(params));
   }
   // TODO find idle thread
-  if (_strategies.size() > 0)
-  {
-    _strategies.at(0)->notify();
-  }
+  _notify(0);
 }
 
 }

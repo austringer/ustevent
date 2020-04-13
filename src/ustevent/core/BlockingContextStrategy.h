@@ -9,7 +9,16 @@ namespace ustevent
 class BlockingContextStrategy : public ContextStrategy
 {
 public:
-  BlockingContextStrategy(Context & context, bool debugging, bool blocking);
+  explicit
+  BlockingContextStrategy(Context & context);
+
+  enum BlockingFlag
+  {
+    BLOCKING,
+    POLLING,
+  };
+
+  BlockingContextStrategy(Context & context, BlockingFlag blocking_flag);
 
   ~BlockingContextStrategy() noexcept override;
 
@@ -19,7 +28,7 @@ protected:
   void onNotified() noexcept override;
 
 private:
-  bool                                  _blocking;
+  BlockingFlag                          _blocking_flag;
   bool                                  _notified = false;
 
   mutable thread::Mutex                 _suspend_mutex;

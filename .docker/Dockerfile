@@ -61,12 +61,11 @@ RUN apt-get update \
         # clang clang-tools lldb lld llvm \
         python3 \
         python3-dev \
-        python3-setuptools \
+        python3-pip \
         libc-dev \
         libssl-dev \
         libunwind-dev \
     && apt-get clean && rm -rf /tmp/* /var/tmp/* && rm -rf /var/lib/apt/lists/*
-    && pip install pylint
 
 
 FROM development_base AS development_boost

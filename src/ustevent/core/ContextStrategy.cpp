@@ -10,12 +10,12 @@
 namespace ustevent
 {
 
-ContextStrategy::ContextStrategy(Context & context, bool debugging)
+ContextStrategy::ContextStrategy(Context & context)
   : _context(context)
-  , _debugging(debugging)
+  , _id(_context._next_strategy_index++)
   , _waiting_fibers_head(nullptr)
 {
-  _id = _context._strategies.push(this);
+  _context._strategies[_id] = this;
 }
 
 ContextStrategy::~ContextStrategy() noexcept = default;
@@ -27,7 +27,7 @@ void ContextStrategy::awakened(::boost::fibers::context * context, FiberDebugInf
   {
     context->detach();
 
-    if (_debugging)
+    if (_context._debug_flag == Context::DEBUG_ON)
     {
       _eraseBacktrace(debug_info);
     }
@@ -52,7 +52,8 @@ auto ContextStrategy::pick_next() noexcept
     ::std::size_t strategy_count = _context._strategies.size();
     if (strategy_count > 1)
     {
-      // If strategy_count == 1, the following do-while loop to get random number will be infinite.
+      // It's meaningless and bugged to steal do stealing
+      // in the context with only one strategy.
       ::std::size_t next_scheduler_id = 0;
       ::std::size_t i = 0;
       static thread_local ::std::minstd_rand generator{ std::random_device{}() };
@@ -64,16 +65,8 @@ auto ContextStrategy::pick_next() noexcept
           ++i;
           next_scheduler_id = distribution(generator);
         } while (next_scheduler_id == _id);
-        auto strategy = _context._strategies.at(next_scheduler_id);
-        auto fiber_strategy = ::boost::dynamic_pointer_cast<ContextStrategy>(strategy);
-        if (USTEVENT_LIKELY(fiber_strategy != nullptr))
-        {
-          victim = fiber_strategy->steal();
-        }
-        else
-        {
-          break;
-        }
+        // steal ready fiber from other strategy
+        victim = _context._strategies[next_scheduler_id]->steal();
       } while (victim == nullptr && i < strategy_count);
       if (victim)
       {
@@ -83,7 +76,9 @@ auto ContextStrategy::pick_next() noexcept
       }
     }
   }
-  if (_debugging && victim && ::boost::fibers::context::active()->is_context(::boost::fibers::type::worker_context))
+  if (_context._debug_flag == Context::DEBUG_ON &&
+      victim &&
+      ::boost::fibers::context::active()->is_context(::boost::fibers::type::worker_context))
   {
     _recordBacktrace();
   }
@@ -127,7 +122,7 @@ auto ContextStrategy::_launchPostedFiber()
 
   while (!posted.empty())
   {
-    auto & top = posted.front();
+    auto & top = posted.back();
 
     if (top._task_operation)
     {
@@ -137,7 +132,7 @@ auto ContextStrategy::_launchPostedFiber()
       f.start([operation=::std::move(top._task_operation)](){ operation->perform(); });
       f.detach();
     }
-    posted.pop_front();
+    posted.pop_back();
   }
   return launch_count;
 }

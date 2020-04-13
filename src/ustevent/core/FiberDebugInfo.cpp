@@ -1,6 +1,5 @@
 #include "ustevent/core/FiberDebugInfo.h"
 
-// #include <execinfo.h> // backtrace
 #include <cassert>
 #include "ustevent/core/detail/Macros.h"
 
@@ -9,13 +8,37 @@ namespace ustevent
 
 FiberDebugInfo::FiberDebugInfo(::boost::fibers::context * context)
   : ::boost::fibers::fiber_properties(context)
-  // , _backtrace()
+  , _backtrace()
 {}
 
 void FiberDebugInfo::updateFrame()
 {
   // _size = ::backtrace(_backtrace, USTEVENT_ARRAY_SIZE(_backtrace));
-  unw_getcontext(&_unwind_context);
+  constexpr auto backtrace_size = USTEVENT_ARRAY_SIZE(_backtrace);
+  unw_context_t context;
+  unw_cursor_t cursor;
+  unw_getcontext(&context);
+  unw_init_local(&cursor, &context);
+  ::std::size_t i = 0;
+  do
+  {
+    unw_get_reg(&cursor, UNW_REG_IP, _backtrace + i++);
+    if (unw_step(&cursor) == 0)
+    {
+      if (i < backtrace_size)
+      {
+        unw_get_reg(&cursor, UNW_REG_IP, _backtrace + i++);
+      }
+      break;
+    }
+  } while (i < backtrace_size);
+
+  _size = i;
+
+  for (;i < backtrace_size; ++i)
+  {
+    _backtrace[i] = 0;
+  }
 }
 
 void FiberDebugInfo::setDescription(::std::string description)
@@ -34,41 +57,3 @@ bool FiberDebugInfo::terminated() const
 }
 
 }
-
-
-void ustevent_backtraceFiber(
-  unw_context_t * context,
-  uintptr_t *     ip_stack,
-  size_t          ip_stack_length,
-  size_t *        frame_depth)
-{
-  assert(context != nullptr);
-  assert(ip_stack != nullptr);
-  assert(frame_depth != nullptr);
-
-  unw_cursor_t cursor;
-  unw_init_local(&cursor, context);
-
-  size_t i = 0;
-  while (i < ip_stack_length && unw_step(&cursor))
-  {
-    auto ip = reinterpret_cast<unw_word_t *>(ip_stack + i);
-    unw_get_reg(&cursor, UNW_REG_IP, ip);
-    ++i;
-  }
-  *frame_depth = i;
-}
-
-// void ustevent_backtrace(unw_context_t * unwind_context)
-// {
-//   unw_cursor_t cursor;
-//   unw_init_local(&cursor, unwind_context);
-
-//   int n = 0;
-//   while (unw_step(&cursor))
-//   {
-//     unw_word_t ip, sp, off;
-//     unw_get_reg(&cursor, UNW_REG_IP, &ip);
-//     unw_get_reg(&cursor, UNW_REG_SP, &sp);
-//   }
-// }

@@ -1,21 +1,38 @@
 #ifndef USTEVENT_CORE_DETAIL_THEATERIMPL_H_
 #define USTEVENT_CORE_DETAIL_THEATERIMPL_H_
 
-#include <functional>
+// #include <functional>
+#include <atomic>
 #include <list>
-#include <type_traits>
+#include <vector>
+#include <type_traits>  // invoke_result
+#include <boost/intrusive_ptr.hpp>
 #include "ustevent/core/detail/Operation.h"
 #include "ustevent/core/thread/Mutex.h"
+#include "ustevent/core/thread/Barrier.h"
 #include "ustevent/core/fiber/ConditionVariable.h"
 #include "ustevent/core/detail/AppendOnlyArray.h"
 
 namespace ustevent
 {
 
+class ContextStrategy;
+
 class Context
 {
 public:
   Context();
+
+  explicit
+  Context(::std::size_t thread_num);
+
+  enum DebugFlag
+  {
+    DEBUG_ON,
+    DEBUG_OFF,
+  };
+
+  Context(::std::size_t thread_num, DebugFlag debug_flag);
 
   ~Context() noexcept;
 
@@ -23,6 +40,8 @@ public:
 
   template <typename Strategy, typename ... Args>
   void run(Args && ... args);
+
+  void run();
 
   void terminate();
 
@@ -76,7 +95,6 @@ protected:
     template <typename Callable, typename Parameters>
     ContextTask(Callable && fiber_task, Parameters && params);
   };
-  void _swapOutPostedFiberTask(::std::list<ContextTask> * list);
 
 private:
 
@@ -85,6 +103,10 @@ private:
 
   template <typename Callable>
   void _postInRemote(Callable && fiber_task, TaskParameters && params);
+
+  void _notify(::std::size_t index);
+
+  void _swapOutPostedFiberTask(::std::list<ContextTask> * list);
 
   mutable thread::Mutex                     _done_mutex;
   mutable fiber::ConditionVariableAny       _done_cv;
@@ -96,13 +118,20 @@ private:
   mutable thread::Mutex                     _fiber_task_list_mutex;
   ::std::list<ContextTask>                  _fiber_task_list;
 
-  detail::AppendOnlyArray<::boost::fibers::algo::algorithm::ptr_t>  _strategies;
+  // detail::AppendOnlyArray<::boost::fibers::algo::algorithm::ptr_t>  _strategies;
+  thread::Barrier                           _barrier;
+  ::std::atomic_size_t                      _next_strategy_index = { 0 };
+  ::std::vector<::boost::intrusive_ptr<ContextStrategy>>    _strategies;
+
+  DebugFlag                                 _debug_flag;
 
   friend class ContextStrategy;
 
   template <typename Strategy>
   friend class ContextStrategyWrapper;
 };
+
+void installMainContext();
 
 }
 

@@ -10,7 +10,7 @@ namespace ustevent
 namespace net
 {
 
-class NetContext final : public Context
+class NetContext : public Context
 {
 public:
   NetContext();
