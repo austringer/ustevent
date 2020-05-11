@@ -4,6 +4,7 @@
 #include "ustevent/core/detail/BasicBarrier.h"
 
 #include <cassert>
+#include <mutex>
 
 namespace ustevent
 {

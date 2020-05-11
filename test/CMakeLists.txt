@@ -1,5 +1,6 @@
 add_executable(UsteventUnitTest
   CatchMain.cpp
+  TestConcurrency.cpp
   TestContext.cpp
 )
 
