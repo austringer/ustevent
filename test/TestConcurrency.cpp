@@ -99,7 +99,7 @@ SCENARIO("Test Ustevent concurrency library", "[core]")
           }
         }
         {
-          ::std::lock_guard<::std::mutex> lock(datas_mutex);
+          ::std::scoped_lock<::std::mutex> lock(datas_mutex);
           for (auto & data : datas_in_this_thread)
           {
             datas.erase(data);
