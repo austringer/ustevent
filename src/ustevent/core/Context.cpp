@@ -74,7 +74,7 @@ void Context::_swapOutPostedFiberTask(::std::list<ContextTask> * list)
   assert(list != nullptr);
 
   list->clear();
-  ::std::scoped_lock<thread::Mutex> lock(_fiber_task_list_mutex);
+  ::std::scoped_lock<detail::SpinMutex> lock(_fiber_task_list_mutex);
   list->swap(_fiber_task_list);
 }
 

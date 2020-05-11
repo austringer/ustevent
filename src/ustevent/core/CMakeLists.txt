@@ -1,4 +1,5 @@
 set(ustevent_core_Sources
+  detail/SpinMutex.cpp
   Context.cpp
   Fiber.cpp
   FiberDebugInfo.cpp

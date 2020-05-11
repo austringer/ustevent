@@ -112,9 +112,10 @@ Context::ContextTask::ContextTask(Callable && fiber_task, Parameters && params)
 template <typename Callable>
 void Context::_postInRemote(Callable && fiber_task, TaskParameters && params)
 {
+  ContextTask task(::std::move(fiber_task), ::std::move(params));
   {
-    ::std::scoped_lock<thread::Mutex> lock(_fiber_task_list_mutex);
-    _fiber_task_list.emplace_back(::std::move(fiber_task), ::std::move(params));
+    ::std::scoped_lock<detail::SpinMutex> lock(_fiber_task_list_mutex);
+    _fiber_task_list.push_back(::std::move(task));
   }
   // TODO find idle thread
   _notify(0);
