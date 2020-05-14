@@ -11,7 +11,7 @@ namespace ustevent
 
 template <typename T>
 ObjectPool<T>::ObjectPool()
-  : detail::ListNodeAllocator(detail::ListNodeAllocator::NoHeadTail{})
+  : _allocator(typename detail::ListNodeAllocator<T>::NoHeadTail{})
 {}
 
 template <typename T>
@@ -21,7 +21,7 @@ template <typename T>
 auto ObjectPool<T>::alloc()
   -> T *
 {
-  ListNode * node = _allocator->alloc();
+  ListNode * node = _allocator.alloc();
   return &(node->_data);
 }
 
@@ -30,7 +30,7 @@ void ObjectPool<T>::free(T * object)
 {
   constexpr auto offset = offsetof(ListNode, _data);
   ListNode * node = reinterpret_cast<ListNode *>(reinterpret_cast<char *>(object) - offset);
-  _allocator->free(node);
+  _allocator.free(node);
 }
 
 }

@@ -32,7 +32,7 @@ void Context::setStackSize(::std::size_t stack_size)
   _stack_size_in_context = stack_size;
 }
 
-void Context::run()
+void Context::start()
 {
   _barrier.wait();
 }

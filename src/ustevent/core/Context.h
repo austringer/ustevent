@@ -41,7 +41,7 @@ public:
   template <typename Strategy, typename ... Args>
   void run(Args && ... args);
 
-  void run();
+  void start();
 
   void terminate();
 

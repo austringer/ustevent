@@ -23,7 +23,7 @@ SCENARIO("Test Ustevent Context", "[core]")
     int i = 0;
     fiber::Promise<void> finished;
 
-    ctx.run();
+    ctx.start();
 
     ctx.post([&i](){
       i += 100;
@@ -50,7 +50,7 @@ SCENARIO("Test Ustevent Context", "[core]")
     int i = 0;
     thread::Promise<void> finished;
 
-    ctx.run();
+    ctx.start();
 
     auto ret = ctx.call([&i](){
       i = 100;
