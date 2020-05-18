@@ -39,9 +39,6 @@ public:
   explicit
   ListNodeAllocator(::std::size_t alloc_size = 32);
 
-  struct NoHeadTail {};
-  ListNodeAllocator(NoHeadTail tag, ::std::size_t _alloc_size = 32);
-
   ~ListNodeAllocator() noexcept;
 
   ListNodeAllocator(ListNodeAllocator const&) = delete;

@@ -11,7 +11,7 @@ namespace ustevent
 
 template <typename T>
 ObjectPool<T>::ObjectPool()
-  : _allocator(typename detail::ListNodeAllocator<T>::NoHeadTail{})
+  : _allocator()
 {}
 
 template <typename T>
