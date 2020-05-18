@@ -23,6 +23,9 @@ class EventObject;
 
 class Connection;
 
+class TcpIpV4Address;
+class TcpIpV6Address;
+
 class TcpDialer : public Dialer
 {
 public:
@@ -37,8 +40,14 @@ public:
 
   void setConnectTimeout(int milliseconds) override;
 
-  auto connect(Address const& address)
+  auto connect(Address const& remote_address)
     -> ::std::tuple<::std::unique_ptr<Connection>, int> override;
+
+  auto connect(TcpIpV4Address const& remote_v4_address)
+    -> ::std::tuple<::std::unique_ptr<Connection>, int>;
+
+  auto connect(TcpIpV6Address const& remote_v6_address)
+    -> ::std::tuple<::std::unique_ptr<Connection>, int>;
 
   void interrupt() override;
 

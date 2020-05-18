@@ -46,7 +46,7 @@ auto ReactorSyncWriteStream<NonBlockingDevice>::writeSome(void const* data, ::st
 
   ::std::size_t bytes_written = 0;
   int e = write_operation.perform(
-      [this](){ return !this->_isShutdown(); },
+      [this](){ return !this->isShutdown(); },
       [this, data, size, &bytes_written](int * error)
       {
         return this->nonBlockingWriteSome(data, size, &bytes_written, error);
@@ -112,7 +112,7 @@ auto ReactorSyncWriteStream<NonBlockingDevice>::write(void const* data, ::std::s
       },
       [](int * /* error */){ return false; },
       _write_timeout_milliseconds);
-  return { next_data - data, e };
+  return { next_data - static_cast<unsigned char const*>(data), e };
 }
 
 template <typename NonBlockingDevice>

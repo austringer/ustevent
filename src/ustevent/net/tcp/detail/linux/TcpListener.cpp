@@ -7,7 +7,6 @@
 #include "ustevent/net/tcp/TcpAddress.h"
 #include "ustevent/net/tcp/TcpConnection.h"
 #include "ustevent/net/tcp/detail/linux/TcpSocket.h"
-#include "ustevent/net/tcp/detail/linux/TcpAddressMethods.h"
 #include "ustevent/net/tcp/detail/linux/TcpSyncReadStream.h"
 #include "ustevent/net/tcp/detail/linux/TcpSyncWriteStream.h"
 
@@ -19,9 +18,31 @@ namespace net
 auto TcpListener::open(NetContext & context, TcpAddress const& local_address)
   -> ::std::tuple<::std::unique_ptr<TcpListener>, int>
 {
+  auto protocal = local_address.protocal();
+  switch (protocal)
+  {
+  case TCP_IPV4:
+    return open(context, dynamic_cast<TcpIpV4Address const&>(local_address));
+  case TCP_IPV6:
+    return open(context, dynamic_cast<TcpIpV6Address const&>(local_address));
+  default:
+    if ((protocal & IPV4) == 0 && (protocal & IPV6) == 0)
+    {
+      return { nullptr, Error::INVALID_NETWORK_PROTOCAL };
+    }
+    else
+    {
+      return { nullptr, Error::INVALID_TRANSPORT_PROTOCAL };
+    }
+  }
+}
+
+auto TcpListener::open(NetContext & context, TcpIpV4Address const& local_v4_address)
+  -> ::std::tuple<::std::unique_ptr<TcpListener>, int>
+{
   int error = 0;
   detail::TcpSocket socket;
-  if ((error = socket.open()) != 0 ||
+  if ((error = socket.open(TCP_IPV4)) != 0 ||
       (error = socket.setReusePort(true)) != 0)
   {
     socket.close();
@@ -31,25 +52,65 @@ auto TcpListener::open(NetContext & context, TcpAddress const& local_address)
   auto event_driven_tcp_socket = ::std::make_shared<detail::EventObject<detail::TcpSocket>>(
     context.selector(), ::std::move(socket));
   if ((error = event_driven_tcp_socket->init()) != 0 ||
-      (error = event_driven_tcp_socket->get().bind(local_address)) != 0 ||
+      (error = event_driven_tcp_socket->get().bind(local_v4_address)) != 0 ||
       (error = event_driven_tcp_socket->get().listen()) != 0)
   {
     return { nullptr, error };
   }
+
   return {
     ::std::unique_ptr<TcpListener>(new TcpListener(
-      context.selector(), ::std::move(event_driven_tcp_socket), local_address
+      context.selector(), ::std::move(event_driven_tcp_socket), local_v4_address
+    )), 0 };
+}
+
+auto TcpListener::open(NetContext & context, TcpIpV6Address const& local_v6_address)
+  -> ::std::tuple<::std::unique_ptr<TcpListener>, int>
+{
+  int error = 0;
+  detail::TcpSocket socket;
+  if ((error = socket.open(TCP_IPV6)) != 0 ||
+      (error = socket.setReusePort(true)) != 0)
+  {
+    socket.close();
+    return { nullptr, error };
+  }
+
+  auto event_driven_tcp_socket = ::std::make_shared<detail::EventObject<detail::TcpSocket>>(
+    context.selector(), ::std::move(socket));
+  if ((error = event_driven_tcp_socket->init()) != 0 ||
+      (error = event_driven_tcp_socket->get().bind(local_v6_address)) != 0 ||
+      (error = event_driven_tcp_socket->get().listen()) != 0)
+  {
+    return { nullptr, error };
+  }
+
+  return {
+    ::std::unique_ptr<TcpListener>(new TcpListener(
+      context.selector(), ::std::move(event_driven_tcp_socket), local_v6_address
     )), 0 };
 }
 
 TcpListener::TcpListener(
   detail::EventSelector & event_selector,
   ::std::shared_ptr<detail::EventObject<detail::TcpSocket>> event_driven_tcp_socket,
-  TcpAddress const& local_address
+  TcpIpV4Address const& local_v4_address
   )
   : _event_selector(event_selector)
   , _event_listen_socket(::std::move(event_driven_tcp_socket))
-  , _local_address(::std::make_unique<TcpAddress>(local_address))
+  , _local_address(::std::make_unique<TcpIpV4Address>(local_v4_address))
+{
+  assert(_event_listen_socket);
+}
+
+TcpListener::TcpListener(
+  detail::EventSelector & event_selector,
+  ::std::shared_ptr<detail::EventObject<detail::TcpSocket>> event_driven_tcp_socket,
+  TcpIpV6Address const& local_v6_address
+  )
+  : _event_selector(event_selector)
+  , _event_listen_socket(::std::move(event_driven_tcp_socket))
+  , _local_address(::std::make_unique<TcpIpV6Address>(local_v6_address))
 {
   assert(_event_listen_socket);
 }
@@ -77,19 +138,22 @@ auto TcpListener::accept() -> ::std::tuple<::std::unique_ptr<Connection>, int>
     }
 
     assert(_local_address != nullptr);
-    ::std::unique_ptr<TcpAddress> local_address = ::std::make_unique<TcpAddress>(*_local_address);
+    auto protocal = _local_address->protocal();
+    ::std::unique_ptr<TcpAddress> local_address;
     ::std::unique_ptr<TcpAddress> remote_address;
-    if ((_local_address->protocal() & IPv6) != 0)
+    if (protocal == TCP_IPV4)
     {
-      remote_address = ::std::make_unique<TcpAddress>(IpAddress::v4);
+      local_address = ::std::make_unique<TcpIpV4Address>(dynamic_cast<TcpIpV4Address const&>(*_local_address));
+      remote_address = ::std::make_unique<TcpIpV4Address>();
     }
-    else if ((_local_address->protocal() & IPv4) != 0)
+    else if (protocal == TCP_IPV6)
     {
-      remote_address = ::std::make_unique<TcpAddress>(IpAddress::v4);
+      local_address = ::std::make_unique<TcpIpV6Address>(dynamic_cast<TcpIpV6Address const&>(*_local_address));
+      remote_address = ::std::make_unique<TcpIpV6Address>();
     }
     else
     {
-      error = Error::INVALID_NETWORK_PROTOCAL;
+      error = Error::INVALID_TRANSPORT_PROTOCAL;
       goto finally;
     }
 

@@ -2,7 +2,7 @@
 #define USTEVENT_NET_DETAIL_LINUX_EPOLLSELECTOR_H_
 
 #include <chrono>
-#include "ustevent/core/detail/ObjectPool.h"
+#include "ustevent/core/concurrency/ObjectPool.h"
 #include "ustevent/net/detail/EventSelector.h"
 
 namespace ustevent
@@ -40,7 +40,7 @@ private:
   ::std::uint32_t     _signal = 0;
   int                 _signal_fd = INVALID_FD;
 
-  ::ustevent::detail::ObjectPool<EventNotifier> _notifier_pool;
+  ::ustevent::ObjectPool<EventNotifier> _notifier_pool;
 
   auto _initEpollFd()
     -> int;

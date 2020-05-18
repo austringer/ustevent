@@ -8,9 +8,13 @@ namespace ustevent
 namespace net
 {
 
-MultiplexingContextStrategy::MultiplexingContextStrategy(NetContext & net_context, bool debugging, bool blocking)
-  : ContextStrategy(net_context, debugging)
-  , _blocking(blocking)
+MultiplexingContextStrategy::MultiplexingContextStrategy(NetContext & net_context)
+  : MultiplexingContextStrategy(net_context, BLOCKING)
+{}
+
+MultiplexingContextStrategy::MultiplexingContextStrategy(NetContext & net_context, BlockingFlag blocking_flag)
+  : ContextStrategy(net_context)
+  , _blocking_flag(blocking_flag)
   , _event_selector(*(net_context._event_selector))
 {
   int error;
@@ -27,7 +31,7 @@ MultiplexingContextStrategy::~MultiplexingContextStrategy() noexcept = default;
 void MultiplexingContextStrategy::onSuspended(::std::chrono::steady_clock::time_point const& time_point) noexcept
 {
   int timeout = 0;
-  if (_blocking)
+  if (_blocking_flag == POLLING)
   {
     timeout = 0;
   }

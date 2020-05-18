@@ -5,6 +5,7 @@
 #include <memory>
 #include <tuple>
 #include "ustevent/net/detail/Descriptor.h"
+#include "ustevent/net/Protocal.h"
 
 namespace ustevent
 {
@@ -36,7 +37,7 @@ public:
   auto release()
     -> Descriptor;
 
-  auto open()
+  auto open(Protocal protocal)
     -> int;
 
   auto close()
@@ -87,6 +88,12 @@ private:
 
   Descriptor _socket_fd = INVALID_FD;
 };
+
+auto getLocalAddress(TcpSocket const& socket)
+  -> ::std::tuple<::std::unique_ptr<TcpAddress>, int>;
+
+auto getRemoteAddress(TcpSocket const& socket)
+  -> ::std::tuple<::std::unique_ptr<TcpAddress>, int>;
 
 }
 }

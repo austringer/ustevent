@@ -2,10 +2,12 @@ add_executable(UsteventUnitTest
   CatchMain.cpp
   TestConcurrency.cpp
   TestContext.cpp
+  TestTcp.cpp
 )
 
 target_link_libraries(UsteventUnitTest
   PRIVATE ustevent_core
+  PRIVATE ustevent_net
 )
 
 set_target_properties(UsteventUnitTest

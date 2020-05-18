@@ -1,0 +1,108 @@
+#include "catch2/catch.hpp"
+
+#include "cstring"
+#if defined(__linux__)
+#include <arpa/inet.h>  // htonl, ntohl
+#endif
+
+#include "ustevent/core/fiber/Barrier.h"
+#include "ustevent/net/NetContext.h"
+#include "ustevent/net/MultiplexingContextStrategy.h"
+#include "ustevent/net/tcp/TcpAddress.h"
+#include "ustevent/net/tcp/TcpListener.h"
+#include "ustevent/net/tcp/TcpDialer.h"
+#include "ustevent/net/Connection.h"
+
+using namespace ustevent;
+
+SCENARIO("Test Ustevent NetContext", "[net]")
+{
+  THEN("post a lambda into Context to change its value")
+  {
+    net::NetContext ctx = {};
+
+    ::std::thread t([&ctx]() { ctx.run<net::MultiplexingContextStrategy>(ctx); });
+
+    fiber::Barrier b(3);
+
+    ctx.start();
+
+    ctx.post([&ctx, &b]() {
+      auto tcp_address = net::TcpAddress::parse("127.0.0.1", 50000);
+      REQUIRE(tcp_address != nullptr);
+
+      auto [listener, e0] = net::TcpListener::open(ctx, *tcp_address);
+      REQUIRE(listener != nullptr);
+      REQUIRE(e0 == 0);
+
+      auto [connection, e1] = listener->accept();
+      REQUIRE(connection != nullptr);
+      REQUIRE(e1 == 0);
+
+      char buffer[64];
+      auto [received_head_size, e2] = connection->read(buffer, sizeof(::std::uint32_t));
+      REQUIRE(received_head_size == sizeof(::std::uint32_t));
+      REQUIRE(e2 == 0);
+
+      ::std::size_t head = ::ntohl(*reinterpret_cast<::std::uint32_t *>(buffer));
+      auto [received_message_size, e3] = connection->read(buffer + sizeof(::std::uint32_t), head);
+      REQUIRE(received_message_size == head);
+      REQUIRE(e3 == 0);
+
+      auto [sent, e4] = connection->write(buffer, sizeof(::std::uint32_t) + head);
+      REQUIRE(sizeof(::std::uint32_t) + head == sent);
+      REQUIRE(e4 == 0);
+
+      b.wait();
+    });
+
+    ctx.post([&ctx, &b]{
+      auto [dialer, e0] = net::TcpDialer::open(ctx);
+      REQUIRE(dialer != nullptr);
+      REQUIRE(e0 == 0);
+
+      auto tcp_address = net::TcpAddress::parse("127.0.0.1", 50000);
+
+      auto [connection, e1] = dialer->connect(*tcp_address);
+      REQUIRE(e1 == 0);
+
+      char const* message = "Hello Ustevent";
+      ::std::size_t message_length = ::std::strlen(message);
+      ::std::uint32_t send_head = ::htonl(message_length + 1);
+
+      char send_buffer[64];
+      ::std::size_t send_buffer_length = 0;
+      ::std::memcpy(send_buffer, &send_head, sizeof(send_head));
+      send_buffer_length += sizeof(send_head);
+      ::std::memcpy(send_buffer + sizeof(send_head), message, message_length);
+      send_buffer_length += message_length;
+      send_buffer[send_buffer_length] = '\0';
+      send_buffer_length += 1;
+
+      auto [head_sent, e2] = connection->write(&send_buffer, send_buffer_length);
+      REQUIRE(head_sent == send_buffer_length);
+      REQUIRE(e2 == 0);
+
+      ::std::uint32_t receive_head = 0;
+      auto [receive_head_size, e3] = connection->read(&receive_head, sizeof(receive_head));
+      REQUIRE(receive_head_size == sizeof(receive_head));
+      REQUIRE(e3 == 0);
+
+      receive_head = ::ntohl(receive_head);
+      REQUIRE(receive_head == message_length + 1);
+
+      char receive_buffer[64];
+      auto [receive_message_size, e4] = connection->read(receive_buffer, receive_head);
+      REQUIRE(receive_message_size == message_length + 1);
+      REQUIRE(e4 == 0);
+      REQUIRE(::std::strcmp(send_buffer + sizeof(send_head), receive_buffer) == 0);
+
+      b.wait();
+    });
+
+    b.wait();
+
+    ctx.terminate();
+    t.join();
+  }
+}

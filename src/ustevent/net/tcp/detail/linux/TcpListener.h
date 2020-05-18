@@ -33,11 +33,23 @@ public:
   static auto open(NetContext & context, TcpAddress const& local_address)
     -> ::std::tuple<::std::unique_ptr<TcpListener>, int>;
 
+  static auto open(NetContext & context, TcpIpV4Address const& local_v4_address)
+    -> ::std::tuple<::std::unique_ptr<TcpListener>, int>;
+
+  static auto open(NetContext & context, TcpIpV6Address const& local_v6_address)
+    -> ::std::tuple<::std::unique_ptr<TcpListener>, int>;
+
 private:
   TcpListener(
     detail::EventSelector & event_selector,
     ::std::shared_ptr<detail::EventObject<detail::TcpSocket>> event_driven_tcp_socket,
-    TcpAddress const& local_address
+    TcpIpV4Address const& local_v4_address
+  );
+
+    TcpListener(
+    detail::EventSelector & event_selector,
+    ::std::shared_ptr<detail::EventObject<detail::TcpSocket>> event_driven_tcp_socket,
+    TcpIpV6Address const& local_v6_address
   );
 
 public:
