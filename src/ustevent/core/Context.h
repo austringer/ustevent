@@ -8,6 +8,7 @@
 #include <type_traits>  // invoke_result
 #include <boost/intrusive_ptr.hpp>
 #include "ustevent/core/detail/Operation.h"
+#include "ustevent/core/detail/SpinMutex.h"
 #include "ustevent/core/thread/Mutex.h"
 #include "ustevent/core/thread/Barrier.h"
 #include "ustevent/core/fiber/ConditionVariable.h"
@@ -114,8 +115,7 @@ private:
 
   ::std::size_t                             _stack_size_in_context = 1024 * 1024;
 
-  // TODO MPSC
-  mutable thread::Mutex                     _fiber_task_list_mutex;
+  mutable detail::SpinMutex                 _fiber_task_list_mutex;
   ::std::list<ContextTask>                  _fiber_task_list;
 
   // detail::AppendOnlyArray<::boost::fibers::algo::algorithm::ptr_t>  _strategies;
