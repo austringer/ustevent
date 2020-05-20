@@ -17,6 +17,8 @@ public:
 
   ~NetContext() noexcept;
 
+  void run();
+
   auto selector()
     -> detail::EventSelector &;
 

@@ -17,11 +17,11 @@ using namespace ustevent;
 
 SCENARIO("Test Ustevent NetContext", "[net]")
 {
-  THEN("post a lambda into Context to change its value")
+  THEN("test an echo server and an echo client")
   {
     net::NetContext ctx = {};
 
-    ::std::thread t([&ctx]() { ctx.run<net::MultiplexingContextStrategy>(ctx); });
+    ::std::thread t([&ctx]() { ctx.run(); });
 
     fiber::Barrier b(3);
 
@@ -40,19 +40,49 @@ SCENARIO("Test Ustevent NetContext", "[net]")
       REQUIRE(e1 == 0);
 
       char buffer[64];
-      auto [received_head_size, e2] = connection->read(buffer, sizeof(::std::uint32_t));
-      REQUIRE(received_head_size == sizeof(::std::uint32_t));
-      REQUIRE(e2 == 0);
+      ::std::size_t next_length = 0;
+      while (true)
+      {
+        auto [received_some_size, e2] = connection->readSome(buffer + next_length, sizeof(buffer) - next_length);
+        REQUIRE(e2 == 0);
+        ::std::size_t received_message_size = received_some_size - sizeof(::std::uint32_t);
 
-      ::std::size_t head = ::ntohl(*reinterpret_cast<::std::uint32_t *>(buffer));
-      auto [received_message_size, e3] = connection->read(buffer + sizeof(::std::uint32_t), head);
-      REQUIRE(received_message_size == head);
-      REQUIRE(e3 == 0);
+        if (received_some_size < sizeof(::std::uint32_t))
+        {
+          continue;
+        }
+        else
+        {
+          ::std::size_t head = ::ntohl(*reinterpret_cast<::std::uint32_t *>(buffer));
 
-      auto [sent, e4] = connection->write(buffer, sizeof(::std::uint32_t) + head);
-      REQUIRE(sizeof(::std::uint32_t) + head == sent);
-      REQUIRE(e4 == 0);
+          if (head > received_message_size)
+          {
+            auto [receive_left, e3] = connection->read(buffer + received_some_size, head - received_message_size);
+            REQUIRE(receive_left == head - received_message_size);
+            REQUIRE(e3 == 0);
+            next_length = 0;
+          }
+          else if (head < received_message_size)
+          {
+            next_length = received_message_size - head;
+          }
+          else
+          {
+            next_length = 0;
+          }
 
+          auto [sent, e4] = connection->write(buffer, sizeof(::std::uint32_t) + head);
+          REQUIRE(sent == sizeof(::std::uint32_t) + head);
+          REQUIRE(e4 == 0);
+
+          if (next_length > 0)
+          {
+            ::std::memmove(buffer, buffer + sizeof(::std::uint32_t) + head, next_length);
+          }
+        }
+
+        break;  // unit test run once
+      }
       b.wait();
     });
 
