@@ -1,4 +1,4 @@
-#include "catch2/catch.hpp"
+#include "doctest/doctest.h"
 
 #include <atomic>
 #include <list>
@@ -15,7 +15,7 @@ using namespace ustevent;
 
 static int ENQUEUE_DATA_NUM = 1000000;
 
-SCENARIO("Test Ustevent concurrency library", "[core]")
+SCENARIO("Test Ustevent concurrency library")
 {
   WHEN("Test SpscListQueue")
   {

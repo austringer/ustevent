@@ -1,4 +1,4 @@
-#include "catch2/catch.hpp"
+#include "doctest/doctest.h"
 
 #include <iostream>
 #include <chrono>
@@ -12,7 +12,7 @@
 
 using namespace ustevent;
 
-SCENARIO("Test Ustevent Context", "[core]")
+SCENARIO("Test Ustevent Context")
 {
   THEN("post a lambda into Context to change its value")
   {

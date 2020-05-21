@@ -1,4 +1,4 @@
-#include "catch2/catch.hpp"
+#include "doctest/doctest.h"
 
 #include "cstring"
 #if defined(__linux__)
@@ -15,7 +15,7 @@
 
 using namespace ustevent;
 
-SCENARIO("Test Ustevent NetContext", "[net]")
+SCENARIO("Test Ustevent NetContext")
 {
   THEN("test an echo server and an echo client")
   {
