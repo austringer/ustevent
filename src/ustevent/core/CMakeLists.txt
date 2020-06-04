@@ -1,5 +1,7 @@
 set(ustevent_core_Sources
+  detail/MpscRingBuffer.cpp
   detail/SpinMutex.cpp
+  detail/ContextTaskQueue.cpp
   Context.cpp
   Fiber.cpp
   FiberDebugInfo.cpp

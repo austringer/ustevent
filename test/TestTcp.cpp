@@ -27,7 +27,7 @@ SCENARIO("Test Ustevent NetContext")
 
     ctx.start();
 
-    ctx.post([&ctx, &b]() {
+    ctx.post([ctx=::std::ref(ctx), b=::std::ref(b)]() mutable -> void {
       auto tcp_address = net::TcpAddress::parse("127.0.0.1", 50000);
       REQUIRE(tcp_address != nullptr);
 
@@ -83,10 +83,10 @@ SCENARIO("Test Ustevent NetContext")
 
         break;  // unit test run once
       }
-      b.wait();
+      b.get().wait();
     });
 
-    ctx.post([&ctx, &b]{
+    ctx.post([ctx=::std::ref(ctx), b=::std::ref(b)]() mutable {
       auto [dialer, e0] = net::TcpDialer::open(ctx);
       REQUIRE(dialer != nullptr);
       REQUIRE(e0 == 0);
@@ -127,7 +127,7 @@ SCENARIO("Test Ustevent NetContext")
       REQUIRE(e4 == 0);
       REQUIRE(::std::strcmp(send_buffer + sizeof(send_head), receive_buffer) == 0);
 
-      b.wait();
+      b.get().wait();
     });
 
     b.wait();

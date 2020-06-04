@@ -16,35 +16,29 @@ ContextStrategyWrapper<Strategy>::ContextStrategyWrapper(Context & context, Args
 }
 
 template <typename Strategy>
-auto ContextStrategyWrapper<Strategy>::_launchPostedFiber()
+auto ContextStrategyWrapper<Strategy>::_launchPostedTask()
   -> ::std::size_t
 {
-  ::std::list<Context::ContextTask> posted;
-  _context._swapOutPostedFiberTask(&posted);
-
-  ::std::size_t launch_count = posted.size();
-
-  while (!posted.empty())
+  detail::Operation * operation;
+  ::std::size_t stack_size;
+  ::std::string_view description;
+  if (_context._scheduleOutRemoteTask(&operation, &stack_size, &description))
   {
-    auto & top = posted.front();
-    if (top._task_operation)
-    {
-      Fiber f;
-      f.setStackSize(top._task_params.stack_size);
-      f.setDescription(::std::move(top._task_params.description));
-      f.start([operation=::std::move(top._task_operation)](){ operation->perform(); });
-      f.detach();
-    }
-    posted.pop_front();
+    assert(operation != nullptr);
+    Fiber f;
+    f.setStackSize(stack_size);
+    f.setDescription(description);
+    f.start([operation](){ operation->perform(); });
+    f.detach();
+    return 1;
   }
-
-  return launch_count;
+  return 0;
 }
 
 template <typename Strategy>
 void ContextStrategyWrapper<Strategy>::suspend_until(::std::chrono::steady_clock::time_point const& time_point) noexcept
 {
-  if (_launchPostedFiber() > 0)
+  if (_launchPostedTask() > 0)
   {
     return;
   }

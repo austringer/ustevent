@@ -22,6 +22,8 @@ public:
 
   void setDescription(::std::string description);
 
+  void setDescription(::std::string_view description);
+
   template <typename Fn, typename ... Args>
   void start(Fn && function, Args ... args);
 

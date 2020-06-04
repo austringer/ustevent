@@ -93,7 +93,7 @@ auto ContextStrategy::has_ready_fibers() const noexcept
 
 void ContextStrategy::suspend_until(::std::chrono::steady_clock::time_point const& time_point) noexcept
 {
-  if (_launchPostedFiber() > 0)
+  if (_launchPostedTask() > 0)
   {
     return;
   }
@@ -112,29 +112,23 @@ auto ContextStrategy::steal() noexcept
   return _ready_queue.steal();
 }
 
-auto ContextStrategy::_launchPostedFiber()
+auto ContextStrategy::_launchPostedTask()
   -> ::std::size_t
 {
-  ::std::list<Context::ContextTask> posted;
-  _context._swapOutPostedFiberTask(&posted);
-
-  ::std::size_t launch_count = posted.size();
-
-  while (!posted.empty())
+  detail::Operation * operation;
+  ::std::size_t stack_size;
+  ::std::string_view description;
+  if (_context._scheduleOutRemoteTask(&operation, &stack_size, &description))
   {
-    auto & top = posted.back();
-
-    if (top._task_operation)
-    {
-      Fiber f;
-      f.setStackSize(top._task_params._stack_size);
-      f.setDescription(::std::move(top._task_params._description));
-      f.start([operation=::std::move(top._task_operation)](){ operation->perform(); });
-      f.detach();
-    }
-    posted.pop_back();
+    assert(operation != nullptr);
+    Fiber f;
+    f.setStackSize(stack_size);
+    f.setDescription(description);
+    f.start([operation](){ operation->perform(); });
+    f.detach();
+    return 1;
   }
-  return launch_count;
+  return 0;
 }
 
 void ContextStrategy::_recordBacktrace()

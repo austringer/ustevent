@@ -12,7 +12,8 @@
 #include "ustevent/core/thread/Mutex.h"
 #include "ustevent/core/thread/Barrier.h"
 #include "ustevent/core/fiber/ConditionVariable.h"
-#include "ustevent/core/detail/AppendOnlyArray.h"
+// #include "ustevent/core/detail/AppendOnlyArray.h"
+#include "ustevent/core/detail/ContextTaskQueue.h"
 
 namespace ustevent
 {
@@ -33,7 +34,12 @@ public:
     DEBUG_OFF,
   };
 
-  Context(::std::size_t thread_num, DebugFlag debug_flag);
+  enum : ::std::size_t
+  {
+    DEFAULT_BUFFER_LENGTH = 16 * 1024
+  };
+
+  Context(::std::size_t thread_num, DebugFlag debug_flag, ::std::size_t buffer_length);
 
   ~Context() noexcept;
 
@@ -46,40 +52,40 @@ public:
 
   void terminate();
 
-  struct TaskParameters
-  {
-    TaskParameters();
+  // struct TaskParameters
+  // {
+  //   TaskParameters();
 
-    explicit
-    TaskParameters(::std::size_t stack_size);
+  //   explicit
+  //   TaskParameters(::std::size_t stack_size);
 
-    explicit
-    TaskParameters(::std::string description);
+  //   explicit
+  //   TaskParameters(::std::string description);
 
-    TaskParameters(::std::size_t, ::std::string description);
+  //   TaskParameters(::std::size_t, ::std::string description);
 
-    ::std::size_t   _stack_size = 0;
-    ::std::string   _description;
-  };
+  //   ::std::size_t   _stack_size = 0;
+  //   ::std::string   _description;
+  // };
 
   template <typename Callable>
   void post(Callable fiber_task);
 
   template <typename Callable>
-  void post(Callable fiber_task, TaskParameters params);
+  void post(Callable fiber_task, ::std::size_t stack_size, ::std::string_view description);
 
   template <typename Callable>
   void dispatch(Callable fiber_task);
 
   template <typename Callable>
-  void dispatch(Callable fiber_task, TaskParameters params);
+  void dispatch(Callable fiber_task, ::std::size_t stack_size, ::std::string_view description);
 
   template <typename Callable>
   auto call(Callable fiber_task)
     -> ::std::invoke_result_t<Callable>;
 
   template <typename Callable>
-  auto call(Callable fiber_task, TaskParameters params)
+  auto call(Callable fiber_task, ::std::size_t stack_size, ::std::string_view description)
     -> ::std::invoke_result_t<Callable>;
 
   Context(Context const&) = delete;
@@ -88,14 +94,14 @@ public:
 
 protected:
 
-  struct ContextTask
-  {
-    ::std::unique_ptr<detail::Operation>  _task_operation;
-    TaskParameters                        _task_params;
+  // struct ContextTask
+  // {
+  //   ::std::unique_ptr<detail::Operation>  _task_operation;
+  //   TaskParameters                        _task_params;
 
-    template <typename Callable, typename Parameters>
-    ContextTask(Callable && fiber_task, Parameters && params);
-  };
+  //   template <typename Callable, typename Parameters>
+  //   ContextTask(Callable && fiber_task, Parameters && params);
+  // };
 
 private:
 
@@ -103,11 +109,15 @@ private:
     -> bool;
 
   template <typename Callable>
-  void _postInRemote(Callable && fiber_task, TaskParameters && params);
+  // void _postTaskFromRemote(Callable && fiber_task, TaskParameters && params);
+  void _postTaskFromRemote(Callable && fiber_task, ::std::size_t stack_size, ::std::string_view description);
 
   void _notify(::std::size_t index);
 
-  void _swapOutPostedFiberTask(::std::list<ContextTask> * list);
+  auto _scheduleOutRemoteTask(detail::Operation * * operation, ::std::size_t * stack_size, ::std::string_view * description)
+    -> bool;
+
+  // void _swapOutPostedFiberTask(::std::list<ContextTask> * list);
 
   mutable thread::Mutex                     _done_mutex;
   mutable fiber::ConditionVariableAny       _done_cv;
@@ -115,8 +125,8 @@ private:
 
   ::std::size_t                             _stack_size_in_context = 1024 * 1024;
 
-  mutable detail::SpinMutex                 _fiber_task_list_mutex;
-  ::std::list<ContextTask>                  _fiber_task_list;
+  // mutable detail::SpinMutex                 _fiber_task_list_mutex;
+  // ::std::list<ContextTask>                  _fiber_task_list;
 
   // detail::AppendOnlyArray<::boost::fibers::algo::algorithm::ptr_t>  _strategies;
   thread::Barrier                           _barrier;
@@ -124,6 +134,8 @@ private:
   ::std::vector<::boost::intrusive_ptr<ContextStrategy>>    _strategies;
 
   DebugFlag                                 _debug_flag;
+
+  detail::ContextTaskQueue                  _context_task_queue;
 
   friend class ContextStrategy;
 

@@ -13,13 +13,14 @@ Context::Context()
 {}
 
 Context::Context(::std::size_t thread_num)
-  : Context(thread_num, DEBUG_OFF)
+  : Context(thread_num, DEBUG_OFF, DEFAULT_BUFFER_LENGTH)
 {}
 
-Context::Context(::std::size_t thread_num, DebugFlag debug_flag)
+Context::Context(::std::size_t thread_num, DebugFlag debug_flag, ::std::size_t buffer_length)
   : _barrier(thread_num + 1)
   , _strategies(thread_num, nullptr)
   , _debug_flag(debug_flag)
+  , _context_task_queue(buffer_length != 0 ? buffer_length : DEFAULT_BUFFER_LENGTH)
 {}
 
 Context::~Context()
@@ -46,20 +47,20 @@ void Context::terminate()
   _done_cv.notify_all();
 }
 
-Context::TaskParameters::TaskParameters() = default;
+// Context::TaskParameters::TaskParameters() = default;
 
-Context::TaskParameters::TaskParameters(::std::size_t stack_size)
-  : _stack_size(stack_size)
-{}
+// Context::TaskParameters::TaskParameters(::std::size_t stack_size)
+//   : _stack_size(stack_size)
+// {}
 
-Context::TaskParameters::TaskParameters(::std::string description)
-  : _description(::std::move(description))
-{}
+// Context::TaskParameters::TaskParameters(::std::string description)
+//   : _description(::std::move(description))
+// {}
 
-Context::TaskParameters::TaskParameters(::std::size_t stack_size, ::std::string description)
-  : _stack_size(stack_size)
-  , _description(::std::move(description))
-{}
+// Context::TaskParameters::TaskParameters(::std::size_t stack_size, ::std::string description)
+//   : _stack_size(stack_size)
+//   , _description(::std::move(description))
+// {}
 
 void Context::_notify(::std::size_t index)
 {
@@ -69,13 +70,23 @@ void Context::_notify(::std::size_t index)
   }
 }
 
-void Context::_swapOutPostedFiberTask(::std::list<ContextTask> * list)
-{
-  assert(list != nullptr);
+// void Context::_swapOutPostedFiberTask(::std::list<ContextTask> * list)
+// {
+//   assert(list != nullptr);
 
-  list->clear();
-  ::std::scoped_lock<detail::SpinMutex> lock(_fiber_task_list_mutex);
-  list->swap(_fiber_task_list);
+//   list->clear();
+//   ::std::scoped_lock<detail::SpinMutex> lock(_fiber_task_list_mutex);
+//   list->swap(_fiber_task_list);
+// }
+
+auto Context::_scheduleOutRemoteTask(detail::Operation * * operation, ::std::size_t * stack_size, ::std::string_view * description)
+  -> bool
+{
+  assert(operation != nullptr);
+  assert(stack_size != nullptr);
+  assert(description != nullptr);
+
+  return _context_task_queue.pop(operation, stack_size, description);
 }
 
 auto Context::_isRunningInThis() const

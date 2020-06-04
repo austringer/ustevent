@@ -13,7 +13,7 @@ namespace ustevent
 template <typename Fn, typename ... Args>
 void Fiber::start(Fn && function, Args ... args)
 {
-  auto f = [function=::std::forward<Fn>(function), args=::std::make_tuple(::std::forward<Args>(args)...)]()
+  auto f = [function=::std::forward<Fn>(function), args=::std::make_tuple(::std::forward<Args>(args)...)]() mutable
   {
     ::std::apply(::std::move(function), ::std::move(args));
 

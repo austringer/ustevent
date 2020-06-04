@@ -24,7 +24,7 @@ public:
 
 protected:
 
-  auto _launchPostedFiber()
+  auto _launchPostedTask()
     -> ::std::size_t;
 
 private:

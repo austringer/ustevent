@@ -59,7 +59,7 @@ private:
   using ContextSpmcQueue =      ::boost::fibers::detail::context_spmc_queue;
   ContextSpmcQueue              _ready_queue;
 
-  auto _launchPostedFiber()
+  auto _launchPostedTask()
     -> ::std::size_t;
 
   void _recordBacktrace();

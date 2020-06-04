@@ -22,6 +22,14 @@ void Fiber::setDescription(::std::string description)
   _description = ::std::move(description);
 }
 
+void Fiber::setDescription(::std::string_view description)
+{
+  if (!description.empty())
+  {
+    _description = ::std::string(description);
+  }
+}
+
 void Fiber::join()
 {
   assert(::boost::fibers::context::active()->get_id() != _context->get_id());

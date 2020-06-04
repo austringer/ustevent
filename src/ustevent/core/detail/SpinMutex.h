@@ -37,16 +37,6 @@ private:
   static thread_local McsNode s_local_node;
 };
 
-static inline
-void relax_cpu()
-{
-  #if defined(_MSC_VER)
-    _mm_pause();
-  #elif defined(__GNUC__) || defined(__clang__)
-    asm volatile("pause\n": : :"memory");
-  #endif
-}
-
 }
 }
 
