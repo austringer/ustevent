@@ -49,7 +49,7 @@ auto TcpIpV4Address::parse(::std::string_view const host, unsigned short port)
   if (IpV4Address::parse(host, &(tcp_address->sin_addr), sizeof(tcp_address->sin_addr)))
   {
     tcp_address->sin_family = AF_INET;
-    tcp_address->sin_port = ::htons(port);
+    tcp_address->sin_port = htons(port);
     return address;
   }
   return nullptr;
@@ -66,7 +66,7 @@ auto TcpIpV4Address::parse(::std::string_view const host, unsigned short port, v
   if (IpV4Address::parse(host, &(tcp_address->sin_addr), sizeof(tcp_address->sin_addr)))
   {
     tcp_address->sin_family = AF_INET;
-    tcp_address->sin_port = ::htons(port);
+    tcp_address->sin_port = htons(port);
     return true;
   }
   return false;
@@ -81,7 +81,7 @@ TcpIpV4Address::TcpIpV4Address(IpV4Address const& ip, unsigned short port)
 {
   auto tcp_address = reinterpret_cast<sockaddr_in *>(data());
   tcp_address->sin_family = AF_INET;
-  tcp_address->sin_port = ::htons(port);
+  tcp_address->sin_port = htons(port);
   ::std::memcpy(&(tcp_address->sin_addr), ip.data(), sizeof(tcp_address->sin_addr));
 }
 
@@ -132,7 +132,7 @@ auto TcpIpV4Address::string() const
   auto address = reinterpret_cast<sockaddr_in const*>(data());
   ::inet_ntop(AF_INET, &(address->sin_addr), str, INET_ADDRSTRLEN);
   auto length = ::std::strlen(str);
-  ::std::snprintf(str + length, sizeof(str) - length, ":%d", ::ntohs(address->sin_port));
+  ::std::snprintf(str + length, sizeof(str) - length, ":%d", ntohs(address->sin_port));
   return { str };
 }
 
@@ -144,7 +144,7 @@ auto TcpIpV6Address::parse(::std::string_view const host, unsigned short port)
   if (IpV6Address::parse(host, &(tcp_address->sin6_addr), sizeof(tcp_address->sin6_addr)))
   {
     tcp_address->sin6_family = AF_INET6;
-    tcp_address->sin6_port = ::htons(port);
+    tcp_address->sin6_port = htons(port);
     return address;
   }
   return nullptr;
@@ -161,7 +161,7 @@ auto TcpIpV6Address::parse(::std::string_view const host, unsigned short port, v
   if (IpV6Address::parse(host, &(tcp_address->sin6_addr), sizeof(tcp_address->sin6_addr)))
   {
     tcp_address->sin6_family = AF_INET6;
-    tcp_address->sin6_port = ::htons(port);
+    tcp_address->sin6_port = htons(port);
     return true;
   }
   return false;
@@ -176,7 +176,7 @@ TcpIpV6Address::TcpIpV6Address(IpV6Address const& ip, unsigned short port)
 {
   auto address = reinterpret_cast<sockaddr_in6 *>(data());
   address->sin6_family = AF_INET6;
-  address->sin6_port = ::htons(port);
+  address->sin6_port = htons(port);
   ::std::memcpy(&(address->sin6_addr), ip.data(), sizeof(address->sin6_addr));
 }
 
@@ -228,7 +228,7 @@ auto TcpIpV6Address::string() const
   auto address = reinterpret_cast<sockaddr_in6 const*>(data());
   ::inet_ntop(AF_INET6, &(address->sin6_addr), str + 1, INET6_ADDRSTRLEN);
   auto length = ::std::strlen(str);
-  ::std::snprintf(str + length, sizeof(str) - length, "]:%d", ::ntohs(address->sin6_port));
+  ::std::snprintf(str + length, sizeof(str) - length, "]:%d", ntohs(address->sin6_port));
   return { str };
 }
 

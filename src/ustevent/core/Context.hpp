@@ -105,28 +105,6 @@ auto Context::call(Callable fiber_task, ::std::size_t stack_size, ::std::string_
   }
 }
 
-// template <typename Callable, typename Parameters>
-// Context::ContextTask::ContextTask(Callable && fiber_task, Parameters && params)
-//   : _task_operation(
-//       std::make_unique<detail::ContextOperation<::std::decay_t<Callable>>>(
-//         std::forward<Callable>(fiber_task)
-//       )
-//     )
-//   , _task_params(::std::forward<Parameters>(params))
-// {}
-
-// template <typename Callable>
-// void Context::_postTaskFromRemote(Callable && fiber_task, TaskParameters && params)
-// {
-//   ContextTask task(::std::move(fiber_task), ::std::move(params));
-//   {
-//     ::std::scoped_lock<detail::SpinMutex> lock(_fiber_task_list_mutex);
-//     _fiber_task_list.push_back(::std::move(task));
-//   }
-//   // TODO find idle thread
-//   _notify(0);
-// }
-
 template <typename Callable>
 void Context::_postTaskFromRemote(Callable && fiber_task, ::std::size_t stack_size, ::std::string_view description)
 {

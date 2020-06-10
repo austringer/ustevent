@@ -29,30 +29,33 @@ class TcpIpV6Address;
 class TcpDialer : public Dialer
 {
 public:
-  static auto open(NetContext & context)
+  static auto open(NetContext & net_context)
     -> ::std::tuple<::std::unique_ptr<TcpDialer>, int>;
 
 private:
-  TcpDialer(detail::EventSelector & event_selector);
+  TcpDialer(NetContext & net_context);
 
 public:
   ~TcpDialer() noexcept override;
 
   void setConnectTimeout(int milliseconds) override;
 
-  auto connect(Address const& remote_address)
+  auto connect(::std::unique_ptr<Address> remote_address)
     -> ::std::tuple<::std::unique_ptr<Connection>, int> override;
 
-  auto connect(TcpIpV4Address const& remote_v4_address)
+  auto connect(::std::unique_ptr<TcpIpV4Address> remote_v4_address)
     -> ::std::tuple<::std::unique_ptr<Connection>, int>;
 
-  auto connect(TcpIpV6Address const& remote_v6_address)
+  auto connect(::std::unique_ptr<TcpIpV6Address> remote_v6_address)
     -> ::std::tuple<::std::unique_ptr<Connection>, int>;
 
   void interrupt() override;
 
+  auto getNetContext()
+    -> NetContext & override;
+
 private:
-  detail::EventSelector &                                   _event_selector;
+  NetContext &                                              _net_context;
   ::std::shared_ptr<detail::EventObject<detail::TcpSocket>> _event_dial_socket;
   int                                                       _connect_timeout_milliseconds = -1;
   ::std::atomic_bool                                        _is_connecting = false;

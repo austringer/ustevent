@@ -25,13 +25,11 @@ SCENARIO("Test Ustevent NetContext")
 
     fiber::Barrier b(3);
 
-    ctx.start();
-
     ctx.post([ctx=::std::ref(ctx), b=::std::ref(b)]() mutable -> void {
       auto tcp_address = net::TcpAddress::parse("127.0.0.1", 50000);
       REQUIRE(tcp_address != nullptr);
 
-      auto [listener, e0] = net::TcpListener::open(ctx, *tcp_address);
+      auto [listener, e0] = net::TcpListener::open(ctx, ::std::move(tcp_address));
       REQUIRE(listener != nullptr);
       REQUIRE(e0 == 0);
 
@@ -93,7 +91,7 @@ SCENARIO("Test Ustevent NetContext")
 
       auto tcp_address = net::TcpAddress::parse("127.0.0.1", 50000);
 
-      auto [connection, e1] = dialer->connect(*tcp_address);
+      auto [connection, e1] = dialer->connect(::std::move(tcp_address));
       REQUIRE(e1 == 0);
 
       char const* message = "Hello Ustevent";

@@ -15,16 +15,21 @@ namespace ustevent
 namespace net
 {
 
-auto TcpListener::open(NetContext & context, TcpAddress const& local_address)
+auto TcpListener::open(NetContext & net_context, ::std::unique_ptr<TcpAddress> local_address)
   -> ::std::tuple<::std::unique_ptr<TcpListener>, int>
 {
-  auto protocal = local_address.protocal();
+  if (local_address == nullptr)
+  {
+    return { nullptr, Error::INVALID_ARGUMENT };
+  }
+
+  auto protocal = local_address->protocal();
   switch (protocal)
   {
   case TCP_IPV4:
-    return open(context, dynamic_cast<TcpIpV4Address const&>(local_address));
+    return open(net_context, ::std::unique_ptr<TcpIpV4Address>(dynamic_cast<TcpIpV4Address *>(local_address.release())));
   case TCP_IPV6:
-    return open(context, dynamic_cast<TcpIpV6Address const&>(local_address));
+    return open(net_context, ::std::unique_ptr<TcpIpV6Address>(dynamic_cast<TcpIpV6Address *>(local_address.release())));
   default:
     if ((protocal & IPV4) == 0 && (protocal & IPV6) == 0)
     {
@@ -37,9 +42,14 @@ auto TcpListener::open(NetContext & context, TcpAddress const& local_address)
   }
 }
 
-auto TcpListener::open(NetContext & context, TcpIpV4Address const& local_v4_address)
+auto TcpListener::open(NetContext & net_context, ::std::unique_ptr<TcpIpV4Address> local_v4_address)
   -> ::std::tuple<::std::unique_ptr<TcpListener>, int>
 {
+  if (local_v4_address == nullptr)
+  {
+    return { nullptr, Error::INVALID_ARGUMENT };
+  }
+
   int error = 0;
   detail::TcpSocket socket;
   if ((error = socket.open(TCP_IPV4)) != 0 ||
@@ -50,9 +60,9 @@ auto TcpListener::open(NetContext & context, TcpIpV4Address const& local_v4_addr
   }
 
   auto event_driven_tcp_socket = ::std::make_shared<detail::EventObject<detail::TcpSocket>>(
-    context.selector(), ::std::move(socket));
+    net_context.selector(), ::std::move(socket));
   if ((error = event_driven_tcp_socket->init()) != 0 ||
-      (error = event_driven_tcp_socket->get().bind(local_v4_address)) != 0 ||
+      (error = event_driven_tcp_socket->get().bind(*local_v4_address)) != 0 ||
       (error = event_driven_tcp_socket->get().listen()) != 0)
   {
     return { nullptr, error };
@@ -60,13 +70,18 @@ auto TcpListener::open(NetContext & context, TcpIpV4Address const& local_v4_addr
 
   return {
     ::std::unique_ptr<TcpListener>(new TcpListener(
-      context.selector(), ::std::move(event_driven_tcp_socket), local_v4_address
+      net_context, ::std::move(event_driven_tcp_socket), ::std::move(local_v4_address)
     )), 0 };
 }
 
-auto TcpListener::open(NetContext & context, TcpIpV6Address const& local_v6_address)
+auto TcpListener::open(NetContext & net_context, ::std::unique_ptr<TcpIpV6Address> local_v6_address)
   -> ::std::tuple<::std::unique_ptr<TcpListener>, int>
 {
+  if (local_v6_address == nullptr)
+  {
+    return { nullptr, Error::INVALID_ARGUMENT };
+  }
+
   int error = 0;
   detail::TcpSocket socket;
   if ((error = socket.open(TCP_IPV6)) != 0 ||
@@ -77,9 +92,9 @@ auto TcpListener::open(NetContext & context, TcpIpV6Address const& local_v6_addr
   }
 
   auto event_driven_tcp_socket = ::std::make_shared<detail::EventObject<detail::TcpSocket>>(
-    context.selector(), ::std::move(socket));
+    net_context.selector(), ::std::move(socket));
   if ((error = event_driven_tcp_socket->init()) != 0 ||
-      (error = event_driven_tcp_socket->get().bind(local_v6_address)) != 0 ||
+      (error = event_driven_tcp_socket->get().bind(*local_v6_address)) != 0 ||
       (error = event_driven_tcp_socket->get().listen()) != 0)
   {
     return { nullptr, error };
@@ -87,30 +102,30 @@ auto TcpListener::open(NetContext & context, TcpIpV6Address const& local_v6_addr
 
   return {
     ::std::unique_ptr<TcpListener>(new TcpListener(
-      context.selector(), ::std::move(event_driven_tcp_socket), local_v6_address
+      net_context, ::std::move(event_driven_tcp_socket), ::std::move(local_v6_address)
     )), 0 };
 }
 
 TcpListener::TcpListener(
-  detail::EventSelector & event_selector,
+  NetContext & net_context,
   ::std::shared_ptr<detail::EventObject<detail::TcpSocket>> event_driven_tcp_socket,
-  TcpIpV4Address const& local_v4_address
+  ::std::unique_ptr<TcpIpV4Address> local_v4_address
   )
-  : _event_selector(event_selector)
+  : _net_context(net_context)
   , _event_listen_socket(::std::move(event_driven_tcp_socket))
-  , _local_address(::std::make_unique<TcpIpV4Address>(local_v4_address))
+  , _local_address(::std::move(local_v4_address))
 {
   assert(_event_listen_socket);
 }
 
 TcpListener::TcpListener(
-  detail::EventSelector & event_selector,
+  NetContext & net_context,
   ::std::shared_ptr<detail::EventObject<detail::TcpSocket>> event_driven_tcp_socket,
-  TcpIpV6Address const& local_v6_address
+  ::std::unique_ptr<TcpIpV6Address> local_v6_address
   )
-  : _event_selector(event_selector)
+  : _net_context(net_context)
   , _event_listen_socket(::std::move(event_driven_tcp_socket))
-  , _local_address(::std::make_unique<TcpIpV6Address>(local_v6_address))
+  , _local_address(::std::move(local_v6_address))
 {
   assert(_event_listen_socket);
 }
@@ -176,7 +191,7 @@ auto TcpListener::accept() -> ::std::tuple<::std::unique_ptr<Connection>, int>
     assert(remote_address != nullptr);
 
     auto event_socket = ::std::make_shared<detail::EventObject<detail::TcpSocket>>(
-      _event_selector, detail::TcpSocket(accepted_socket_fd));
+      _net_context.selector(), detail::TcpSocket(accepted_socket_fd));
     if ((error = event_socket->init()) != 0)
     {
       goto finally;
@@ -214,6 +229,12 @@ void TcpListener::close()
   interrupt();
   _event_listen_socket.reset();
   _local_address.reset();
+}
+
+auto TcpListener::getNetContext()
+  -> NetContext &
+{
+  return _net_context;
 }
 
 auto TcpListener::_isListening() const

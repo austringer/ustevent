@@ -15,14 +15,14 @@ namespace ustevent
 namespace net
 {
 
-auto TcpDialer::open(NetContext & context)
+auto TcpDialer::open(NetContext & net_context)
   -> ::std::tuple<::std::unique_ptr<TcpDialer>, int>
 {
-  return { ::std::unique_ptr<TcpDialer>(new TcpDialer(context.selector())), 0 };
+  return { ::std::unique_ptr<TcpDialer>(new TcpDialer(net_context)), 0 };
 }
 
-TcpDialer::TcpDialer(detail::EventSelector & event_selector)
-  : _event_selector(event_selector)
+TcpDialer::TcpDialer(NetContext & net_context)
+  : _net_context(net_context)
 {}
 
 TcpDialer::~TcpDialer() noexcept
@@ -34,16 +34,21 @@ void TcpDialer::setConnectTimeout(int milliseconds)
   _connect_timeout_milliseconds = milliseconds;
 }
 
-auto TcpDialer::connect(Address const& remote_address)
+auto TcpDialer::connect(::std::unique_ptr<Address> remote_address)
   -> ::std::tuple<::std::unique_ptr<Connection>, int>
 {
-  auto protocal = remote_address.protocal();
+  if (remote_address == nullptr)
+  {
+    return { nullptr, Error::INVALID_ARGUMENT };
+  }
+
+  auto protocal = remote_address->protocal();
   switch (protocal)
   {
   case TCP_IPV4:
-    return connect(dynamic_cast<TcpIpV4Address const&>(remote_address));
+    return connect(::std::unique_ptr<TcpIpV4Address>(dynamic_cast<TcpIpV4Address *>(remote_address.release())));
   case TCP_IPV6:
-    return connect(dynamic_cast<TcpIpV6Address const&>(remote_address));
+    return connect(::std::unique_ptr<TcpIpV6Address>(dynamic_cast<TcpIpV6Address *>(remote_address.release())));
   default:
     if ((protocal & IPV4) == 0 && (protocal & IPV6) == 0)
     {
@@ -56,9 +61,14 @@ auto TcpDialer::connect(Address const& remote_address)
   }
 }
 
-auto TcpDialer::connect(TcpIpV4Address const& remote_v4_address)
+auto TcpDialer::connect(::std::unique_ptr<TcpIpV4Address> remote_v4_address)
   -> ::std::tuple<::std::unique_ptr<Connection>, int>
 {
+  if (remote_v4_address == nullptr)
+  {
+    return { nullptr, Error::INVALID_ARGUMENT };
+  }
+
   int error = 0;
   ::std::unique_ptr<TcpConnection> connection;
 
@@ -72,7 +82,7 @@ auto TcpDialer::connect(TcpIpV4Address const& remote_v4_address)
     }
 
     _event_dial_socket = ::std::make_shared<detail::EventObject<detail::TcpSocket>>(
-      _event_selector, ::std::move(socket));
+      _net_context.selector(), ::std::move(socket));
     if ((error = _event_dial_socket->init()) != 0)
     {
       goto finally;
@@ -81,7 +91,7 @@ auto TcpDialer::connect(TcpIpV4Address const& remote_v4_address)
     // detail::Descriptor connected_socket;
     detail::EventOperation connect_operation(_event_dial_socket, detail::EVENT_OUT);
 
-    error = _event_dial_socket->get().connect(remote_v4_address);
+    error = _event_dial_socket->get().connect(*remote_v4_address);
     if (error == EINPROGRESS)
     {
       error = connect_operation.perform(
@@ -104,7 +114,7 @@ auto TcpDialer::connect(TcpIpV4Address const& remote_v4_address)
 
     auto connected_socket = _event_dial_socket->release();
 
-    ::std::unique_ptr<TcpAddress> remote_address = ::std::make_unique<TcpIpV4Address>(remote_v4_address);
+    ::std::unique_ptr<TcpAddress> remote_address = ::std::move(remote_v4_address);
     ::std::unique_ptr<TcpAddress> local_address;
     ::std::tie(local_address, error) = detail::getLocalAddress(connected_socket);
     if (error)
@@ -113,7 +123,7 @@ auto TcpDialer::connect(TcpIpV4Address const& remote_v4_address)
     }
 
     auto event_socket = ::std::make_shared<detail::EventObject<detail::TcpSocket>>(
-      _event_selector, ::std::move(connected_socket));
+      _net_context.selector(), ::std::move(connected_socket));
     if ((error = event_socket->init()) != 0)
     {
       goto finally;
@@ -136,9 +146,14 @@ finally:
   return { error ? nullptr : ::std::move(connection), error };
 }
 
-auto TcpDialer::connect(TcpIpV6Address const& remote_v6_address)
+auto TcpDialer::connect(::std::unique_ptr<TcpIpV6Address> remote_v6_address)
   -> ::std::tuple<::std::unique_ptr<Connection>, int>
 {
+  if (remote_v6_address == nullptr)
+  {
+    return { nullptr, Error::INVALID_ARGUMENT };
+  }
+
   int error = 0;
   ::std::unique_ptr<TcpConnection> connection;
 
@@ -153,7 +168,7 @@ auto TcpDialer::connect(TcpIpV6Address const& remote_v6_address)
     }
 
     _event_dial_socket = ::std::make_shared<detail::EventObject<detail::TcpSocket>>(
-      _event_selector, ::std::move(socket));
+      _net_context.selector(), ::std::move(socket));
     if ((error = _event_dial_socket->init()) != 0)
     {
       goto finally;
@@ -162,7 +177,7 @@ auto TcpDialer::connect(TcpIpV6Address const& remote_v6_address)
     // detail::Descriptor connected_socket;
     detail::EventOperation connect_operation(_event_dial_socket, detail::EVENT_OUT);
 
-    error = _event_dial_socket->get().connect(remote_v6_address);
+    error = _event_dial_socket->get().connect(*remote_v6_address);
     if (error == EINPROGRESS)
     {
       error = connect_operation.perform(
@@ -185,7 +200,7 @@ auto TcpDialer::connect(TcpIpV6Address const& remote_v6_address)
 
     auto connected_socket = _event_dial_socket->release();
 
-    ::std::unique_ptr<TcpAddress> remote_address = ::std::make_unique<TcpIpV6Address>(remote_v6_address);
+    ::std::unique_ptr<TcpAddress> remote_address = ::std::move(remote_v6_address);
     ::std::unique_ptr<TcpAddress> local_address;
     ::std::tie(local_address, error) = detail::getLocalAddress(connected_socket);
     if (error)
@@ -195,7 +210,7 @@ auto TcpDialer::connect(TcpIpV6Address const& remote_v6_address)
     assert(local_address->protocal() == TCP_IPV6);
 
     auto event_socket = ::std::make_shared<detail::EventObject<detail::TcpSocket>>(
-      _event_selector, ::std::move(connected_socket));
+      _net_context.selector(), ::std::move(connected_socket));
     if ((error = event_socket->init()) != 0)
     {
       goto finally;
@@ -225,6 +240,12 @@ void TcpDialer::interrupt()
     detail::EventOperation connect_operation(_event_dial_socket, detail::EVENT_OUT);
     connect_operation.interrupt();
   }
+}
+
+auto TcpDialer::getNetContext()
+  -> NetContext &
+{
+  return _net_context;
 }
 
 auto TcpDialer::_isConnecting() const
