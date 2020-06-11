@@ -23,8 +23,6 @@ SCENARIO("Test Ustevent Context")
     int i = 0;
     fiber::Promise<void> finished;
 
-    ctx.start();
-
     ctx.post([i=::std::ref(i)]() mutable {
       i += 100;
       // fiber::sleepFor(::std::chrono::seconds(1000));
@@ -49,8 +47,6 @@ SCENARIO("Test Ustevent Context")
 
     int i = 0;
     thread::Promise<void> finished;
-
-    ctx.start();
 
     auto ret = ctx.call([i=::std::ref(i)]() mutable {
       i.get() = 100;
