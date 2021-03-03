@@ -1,4 +1,4 @@
-#include "catch2/catch.hpp"
+#include "doctest/doctest.h"
 
 #include <iostream>
 #include <chrono>
@@ -12,27 +12,25 @@
 
 using namespace ustevent;
 
-SCENARIO("Test Ustevent Context", "[core]")
+SCENARIO("Test Ustevent Context")
 {
   THEN("post a lambda into Context to change its value")
   {
-    Context ctx(1, Context::DEBUG_ON);
+    Context ctx(1, Context::DEBUG_ON, 0);
 
     ::std::thread t([&ctx]() { ctx.run<BlockingContextStrategy>(ctx); });
 
     int i = 0;
     fiber::Promise<void> finished;
 
-    ctx.run();
-
-    ctx.post([&i](){
+    ctx.post([i=::std::ref(i)]() mutable {
       i += 100;
       // fiber::sleepFor(::std::chrono::seconds(1000));
     });
 
-    ctx.post([&i, &finished](){
+    ctx.post([i=::std::ref(i), finished=::std::ref(finished)]() mutable {
       i += 100;
-      finished.set_value();
+      finished.get().set_value();
     });
     finished.get_future().wait();
 
@@ -44,17 +42,15 @@ SCENARIO("Test Ustevent Context", "[core]")
 
   THEN("call a lambda with Context to change its value")
   {
-    Context ctx(1, Context::DEBUG_ON);
+    Context ctx(1, Context::DEBUG_ON, 0);
     ::std::thread t([&ctx]() { ctx.run<BlockingContextStrategy>(ctx); });
 
     int i = 0;
     thread::Promise<void> finished;
 
-    ctx.run();
-
-    auto ret = ctx.call([&i](){
-      i = 100;
-      return i;
+    auto ret = ctx.call([i=::std::ref(i)]() mutable {
+      i.get() = 100;
+      return i.get();
     });
     REQUIRE(i == 100);
     REQUIRE(ret == 100);

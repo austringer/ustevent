@@ -8,6 +8,7 @@ namespace ustevent
 namespace net
 {
 
+class NetContext;
 class Address;
 class Connection;
 
@@ -27,6 +28,9 @@ public:
 
   virtual auto address()
     -> Address const* = 0;
+
+  virtual auto getNetContext()
+    -> NetContext & = 0;
 
   Listener(Listener const&) = delete;
   auto operator=(Listener const&)

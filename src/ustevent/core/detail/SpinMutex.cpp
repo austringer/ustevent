@@ -1,5 +1,7 @@
 #include "ustevent/core/detail/SpinMutex.h"
 
+#include "ustevent/core/detail/Instructions.h"
+
 namespace ustevent
 {
 namespace detail
@@ -16,7 +18,7 @@ void SpinMutex::lock()
     prev_node->_next = &s_local_node;
     while (s_local_node._locked)
     {
-      relax_cpu();
+      pause();
     }
   }
 }

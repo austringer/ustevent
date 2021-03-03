@@ -17,7 +17,16 @@ class NetContext;
 class MultiplexingContextStrategy : public ContextStrategy
 {
 public:
-  MultiplexingContextStrategy(NetContext & net_context, bool debugging, bool blocking);
+  explicit
+  MultiplexingContextStrategy(NetContext & net_context);
+
+  enum BlockingFlag
+  {
+    BLOCKING,
+    POLLING,
+  };
+
+  MultiplexingContextStrategy(NetContext & net_context, BlockingFlag blocking_flag);
 
   ~MultiplexingContextStrategy() noexcept override;
 
@@ -31,7 +40,7 @@ protected:
   void onNotified() noexcept override;
 
 private:
-  bool                              _blocking;
+  BlockingFlag                      _blocking_flag;
 
   detail::EventSelector &           _event_selector;
 

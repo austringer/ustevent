@@ -28,7 +28,7 @@ auto ReactorSyncReadStream<NonBlockingDevice>::shutdown()
   -> int
 {
   _shutdown.store(true, ::std::memory_order_release);
-  return shutdownRead();
+  return shutdownStream();
 }
 
 template <typename NonBlockingDevice>
@@ -46,7 +46,7 @@ auto ReactorSyncReadStream<NonBlockingDevice>::readSome(void * buffer, ::std::si
 
   ::std::size_t bytes_read = 0;
   int e = read_operation.perform(
-      [this](){ return !_isShutdown(); },
+      [this](){ return !isShutdown(); },
       [this, buffer, size, &bytes_read](int * error)
       {
         return nonBlockingReadSome(buffer, size, &bytes_read, error);
@@ -112,7 +112,7 @@ auto ReactorSyncReadStream<NonBlockingDevice>::read(void * buffer, ::std::size_t
       },
       [](int * /* error */){ return false; },
       _read_timeout_milliseconds);
-  return { next_buffer - buffer, e };
+  return { next_buffer - static_cast<unsigned char *>(buffer), e };
 }
 
 template <typename NonBlockingDevice>

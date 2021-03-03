@@ -5,6 +5,7 @@
 #include <signal.h>
 #include "ustevent/net/detail/linux/EpollSelector.h"
 #endif
+#include "ustevent/net/MultiplexingContextStrategy.h"
 
 namespace ustevent
 {
@@ -29,6 +30,11 @@ NetContext::NetContext()
 NetContext::~NetContext() noexcept
 {
   _this_thread_context = nullptr;
+}
+
+void NetContext::run()
+{
+  Context::run<MultiplexingContextStrategy>(*this);
 }
 
 auto NetContext::selector()

@@ -30,14 +30,26 @@ class TcpAddress;
 class TcpListener : public Listener
 {
 public:
-  static auto open(NetContext & context, TcpAddress const& local_address)
+  static auto open(NetContext & net_context, ::std::unique_ptr<TcpAddress> local_address)
+    -> ::std::tuple<::std::unique_ptr<TcpListener>, int>;
+
+  static auto open(NetContext & net_context, ::std::unique_ptr<TcpIpV4Address> local_v4_address)
+    -> ::std::tuple<::std::unique_ptr<TcpListener>, int>;
+
+  static auto open(NetContext & net_context, ::std::unique_ptr<TcpIpV6Address> local_v6_address)
     -> ::std::tuple<::std::unique_ptr<TcpListener>, int>;
 
 private:
   TcpListener(
-    detail::EventSelector & event_selector,
+    NetContext & net_context,
     ::std::shared_ptr<detail::EventObject<detail::TcpSocket>> event_driven_tcp_socket,
-    TcpAddress const& local_address
+    ::std::unique_ptr<TcpIpV4Address> local_v4_address
+  );
+
+    TcpListener(
+    NetContext & net_context,
+    ::std::shared_ptr<detail::EventObject<detail::TcpSocket>> event_driven_tcp_socket,
+    ::std::unique_ptr<TcpIpV6Address> local_v6_address
   );
 
 public:
@@ -55,11 +67,14 @@ public:
 
   void close() override;
 
+  auto getNetContext()
+    -> NetContext & override;
+
   TcpListener(TcpListener const&) = delete;
-  TcpListener & operator=(TcpListener const&) = delete;
+  auto operator=(TcpListener const&) -> TcpListener & = delete;
 
 private:
-  detail::EventSelector &                                   _event_selector;
+  NetContext &                                              _net_context;
   ::std::shared_ptr<detail::EventObject<detail::TcpSocket>> _event_listen_socket;
   ::std::unique_ptr<TcpAddress>                             _local_address;
   int                                                       _accept_timeout_milliseconds = -1;

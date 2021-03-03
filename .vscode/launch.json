@@ -6,6 +6,44 @@
   "configurations":
   [
     {
+      "name": "Ping-Pong Benchmark AsioClient",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/out/bin/benchmark/AsioClient",
+      "args": ["127.0.0.1", "55000", "1", "1", "500", "100000"],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/out/bin/benchmark",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+          {
+              "description": "Enable pretty-printing for gdb",
+              "text": "-enable-pretty-printing",
+              "ignoreFailures": true
+          }
+      ]
+    },
+    {
+      "name": "Ping-Pong Benchmark AsioServer",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/out/bin/benchmark/AsioServer",
+      "args": ["0.0.0.0", "55000", "1", "1000000"],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/out/bin/benchmark",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+          {
+              "description": "Enable pretty-printing for gdb",
+              "text": "-enable-pretty-printing",
+              "ignoreFailures": true
+          }
+      ]
+    },
+    {
       "name": "Unit Test",
       "type": "cppdbg",
       "request": "launch",
@@ -22,7 +60,7 @@
           "text": "-enable-pretty-printing",
           "ignoreFailures": true
         }
-      ],
+      ]
     }
   ]
 }

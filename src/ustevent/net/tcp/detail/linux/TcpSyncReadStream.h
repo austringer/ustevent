@@ -26,8 +26,6 @@ protected:
 
   auto shutdownStream()
     -> int override;
-
-  friend class ::ustevent::net::TcpConnection;
 };
 
 }

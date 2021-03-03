@@ -28,48 +28,55 @@ void Context::run(Args && ... args)
 template <typename Callable>
 void Context::post(Callable fiber_task)
 {
-  post(::std::move(fiber_task), 0, {});
+  post(::std::move(fiber_task), 0, "");
 }
 
 template <typename Callable>
-void Context::post(Callable fiber_task, ::std::size_t stack_size, ::std::string description)
+void Context::post(Callable fiber_task, ::std::size_t stack_size, ::std::string_view description)
 {
+  if (_isRunningInThis())
   if (isRunningInThis())
   {
     Fiber f;
     f.setPolicy(::boost::fibers::launch::post);
     f.setStackSize(stack_size != 0 ? stack_size : _stack_size_in_context);
-    f.setDescription(::std::move(description));
+    if (_debug_flag == DEBUG_ON)
+    {
+      f.setDescription(description);
+    }
     f.start(::std::move(fiber_task));
     f.detach();
   }
   else
   {
-    _postInRemote(::std::move(fiber_task), { stack_size, std::move(description) });
+    _postTaskFromRemote(::std::move(fiber_task), stack_size, description);
   }
 }
 
 template <typename Callable>
 void Context::dispatch(Callable fiber_task)
 {
-  dispatch(::std::move(fiber_task), 0, {});
+  dispatch(::std::move(fiber_task), 0, "");
 }
 
 template <typename Callable>
-void Context::dispatch(Callable fiber_task, ::std::size_t stack_size, ::std::string description)
+void Context::dispatch(Callable fiber_task, ::std::size_t stack_size, ::std::string_view description)
 {
   if (isRunningInThis())
   {
     Fiber f;
     f.setPolicy(::boost::fibers::launch::dispatch);
     f.setStackSize(stack_size != 0 ? stack_size : _stack_size_in_context);
-    f.setDescription(::std::move(description));
+    if (_debug_flag == DEBUG_ON)
+    {
+      f.setDescription(description);
+    }
     f.start(::std::move(fiber_task));
     f.detach();
   }
   else
   {
-    _postInRemote(::std::move(fiber_task), { stack_size, std::move(description) });
+    _postTaskFromRemote(::std::move(fiber_task), stack_size, description);
   }
 }
 
@@ -77,11 +84,11 @@ template <typename Callable>
 auto Context::call(Callable fiber_task)
   -> ::std::invoke_result_t<Callable>
 {
-  return call(::std::move(fiber_task), 0, {});
+  return call(::std::move(fiber_task), 0, "");
 }
 
 template <typename Callable>
-auto Context::call(Callable fiber_task, ::std::size_t stack_size, ::std::string description)
+auto Context::call(Callable fiber_task, ::std::size_t stack_size, ::std::string_view description)
   -> ::std::invoke_result_t<Callable>
 {
   if (isRunningInThis())
@@ -93,29 +100,24 @@ auto Context::call(Callable fiber_task, ::std::size_t stack_size, ::std::string 
     fiber::PackagedTask<::std::invoke_result_t<Callable>()> packaged_task(::std::move(fiber_task));
     auto future_result = packaged_task.get_future();
 
-    _postInRemote(::std::move(packaged_task), { stack_size, std::move(description) });
+    _postTaskFromRemote(::std::move(packaged_task), stack_size, description);
 
     return future_result.get();
   }
 }
 
-template <typename Callable, typename Parameters>
-Context::ContextTask::ContextTask(Callable && fiber_task, Parameters && params)
-  : _task_operation(
-      std::make_unique<detail::ContextOperation<::std::decay_t<Callable>>>(
-        std::forward<Callable>(fiber_task)
-      )
-    )
-  , _task_params(::std::forward<Parameters>(params))
-{}
-
 template <typename Callable>
-void Context::_postInRemote(Callable && fiber_task, TaskParameters && params)
+void Context::_postTaskFromRemote(Callable && fiber_task, ::std::size_t stack_size, ::std::string_view description)
 {
-  ContextTask task(::std::move(fiber_task), ::std::move(params));
+  using H = ::std::decay_t<Callable>;
+  using D = detail::ContextTaskQueue::TaskDeallocator;
+  if (_debug_flag == DEBUG_OFF)
   {
-    ::std::scoped_lock<detail::SpinMutex> lock(_fiber_task_list_mutex);
-    _fiber_task_list.push_back(::std::move(task));
+    _context_task_queue.push(detail::ContextOperation<H, D>(::std::forward<Callable>(fiber_task), D(_context_task_queue)), stack_size, "");
+  }
+  else
+  {
+    _context_task_queue.push(detail::ContextOperation<H, D>(::std::forward<Callable>(fiber_task), D(_context_task_queue)), stack_size, description);
   }
   // TODO find idle thread
   _notify(0);

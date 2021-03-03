@@ -12,13 +12,13 @@ enum Protocal : unsigned int
   TCP = 0x1 << 8,
   UDP = 0x2 << 8,
 
-  IPv4 = 0x1,
-  IPv6 = 0x2,
+  IPV4 = 0x1,
+  IPV6 = 0x2,
 
-  TCP_IPv4 = TCP | IPv4,
-  TCP_IPv6 = TCP | IPv6,
-  UDP_IPv4 = UDP | IPv4,
-  UDP_IPv6 = UDP | IPv6,
+  TCP_IPV4 = TCP    | IPV4,
+  TCP_IPV6 = TCP    | IPV6,
+  UDP_IPV4 = UDP    | IPV4,
+  UDP_IPV6 = UDP    | IPV6,
 };
 
 inline

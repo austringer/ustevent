@@ -29,13 +29,6 @@ ListNodeAllocator<T>::ListNodeAllocator(::std::size_t alloc_size)
 }
 
 template <typename T>
-ListNodeAllocator<T>::ListNodeAllocator(NoHeadTail /*tag*/, ::std::size_t alloc_size)
-  : _alloc_size(alloc_size)
-  , _storage_head(new StorageNode)
-  , _storage_tail(_storage_head.load(::std::memory_order_relaxed))
-{}
-
-template <typename T>
 ListNodeAllocator<T>::~ListNodeAllocator() noexcept
 {
   StorageNode * tail = _storage_tail.load(::std::memory_order_relaxed);

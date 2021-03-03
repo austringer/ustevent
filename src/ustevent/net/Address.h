@@ -15,10 +15,19 @@ public:
   virtual ~Address() noexcept = default;
 
   virtual auto protocal() const
-    -> Protocal;
+    -> Protocal = 0;
+
+  virtual auto data() const
+    -> void const* = 0;
+
+  virtual auto data()
+    -> void * = 0;
+
+  virtual auto size() const
+    -> ::std::size_t = 0;
 
   virtual auto string() const
-    -> ::std::string_view;
+    -> ::std::string_view = 0;
 };
 
 }

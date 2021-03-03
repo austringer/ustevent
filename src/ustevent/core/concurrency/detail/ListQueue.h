@@ -31,6 +31,10 @@ public:
   auto dequeueMcWeak(T & output)
     -> bool;
 
+  ListQueue(ListQueue const&) = delete;
+  auto operator=(ListQueue const&)
+    -> ListQueue & = delete;
+
 private:
   using ListNode = typename ListNodeAllocator<T>::ListNode;
   using StorageNode = typename ListNodeAllocator<T>::StorageNode;
