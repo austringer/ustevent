@@ -48,14 +48,6 @@ void Context::terminate()
 
 Context::TaskParameters::TaskParameters() = default;
 
-Context::TaskParameters::TaskParameters(::std::size_t stack_size)
-  : _stack_size(stack_size)
-{}
-
-Context::TaskParameters::TaskParameters(::std::string description)
-  : _description(::std::move(description))
-{}
-
 Context::TaskParameters::TaskParameters(::std::size_t stack_size, ::std::string description)
   : _stack_size(stack_size)
   , _description(::std::move(description))
@@ -78,7 +70,7 @@ void Context::_swapOutPostedFiberTask(::std::list<ContextTask> * list)
   list->swap(_fiber_task_list);
 }
 
-auto Context::_isRunningInThis() const
+auto Context::isRunningInThis() const
   -> bool
 {
   return thread::CallStack<Context>::contain(static_cast<Context const*>(this));

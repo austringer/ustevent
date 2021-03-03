@@ -21,6 +21,8 @@ public:
     -> detail::EventSelector &;
 
 private:
+  static thread_local NetContext * _this_thread_context;
+
   ::std::unique_ptr<detail::EventSelector> _event_selector;
 
   friend class MultiplexingContextStrategy;

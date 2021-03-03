@@ -44,42 +44,29 @@ public:
 
   void run();
 
+  auto isRunningInThis() const
+    -> bool;
+
   void terminate();
-
-  struct TaskParameters
-  {
-    TaskParameters();
-
-    explicit
-    TaskParameters(::std::size_t stack_size);
-
-    explicit
-    TaskParameters(::std::string description);
-
-    TaskParameters(::std::size_t, ::std::string description);
-
-    ::std::size_t   _stack_size = 0;
-    ::std::string   _description;
-  };
 
   template <typename Callable>
   void post(Callable fiber_task);
 
   template <typename Callable>
-  void post(Callable fiber_task, TaskParameters params);
+  void post(Callable fiber_task, ::std::size_t stack_size, ::std::string description);
 
   template <typename Callable>
   void dispatch(Callable fiber_task);
 
   template <typename Callable>
-  void dispatch(Callable fiber_task, TaskParameters params);
+  void dispatch(Callable fiber_task, ::std::size_t stack_size, ::std::string description);
 
   template <typename Callable>
   auto call(Callable fiber_task)
     -> ::std::invoke_result_t<Callable>;
 
   template <typename Callable>
-  auto call(Callable fiber_task, TaskParameters params)
+  auto call(Callable fiber_task, ::std::size_t stack_size, ::std::string description)
     -> ::std::invoke_result_t<Callable>;
 
   Context(Context const&) = delete;
@@ -87,6 +74,16 @@ public:
     -> Context & = delete;
 
 protected:
+
+  struct TaskParameters
+  {
+    TaskParameters();
+
+    TaskParameters(::std::size_t stack_size, ::std::string description);
+
+    ::std::size_t   _stack_size = 0;
+    ::std::string   _description;
+  };
 
   struct ContextTask
   {
@@ -98,9 +95,6 @@ protected:
   };
 
 private:
-
-  auto _isRunningInThis() const
-    -> bool;
 
   template <typename Callable>
   void _postInRemote(Callable && fiber_task, TaskParameters && params);
@@ -118,7 +112,6 @@ private:
   mutable detail::SpinMutex                 _fiber_task_list_mutex;
   ::std::list<ContextTask>                  _fiber_task_list;
 
-  // detail::AppendOnlyArray<::boost::fibers::algo::algorithm::ptr_t>  _strategies;
   thread::Barrier                           _barrier;
   ::std::atomic_size_t                      _next_strategy_index = { 0 };
   ::std::vector<::boost::intrusive_ptr<ContextStrategy>>    _strategies;

@@ -28,48 +28,48 @@ void Context::run(Args && ... args)
 template <typename Callable>
 void Context::post(Callable fiber_task)
 {
-  post(::std::move(fiber_task), TaskParameters{});
+  post(::std::move(fiber_task), 0, {});
 }
 
 template <typename Callable>
-void Context::post(Callable fiber_task, TaskParameters params)
+void Context::post(Callable fiber_task, ::std::size_t stack_size, ::std::string description)
 {
-  if (_isRunningInThis())
+  if (isRunningInThis())
   {
     Fiber f;
     f.setPolicy(::boost::fibers::launch::post);
-    f.setStackSize(params._stack_size != 0 ? params._stack_size : _stack_size_in_context);
-    f.setDescription(::std::move(params._description));
+    f.setStackSize(stack_size != 0 ? stack_size : _stack_size_in_context);
+    f.setDescription(::std::move(description));
     f.start(::std::move(fiber_task));
     f.detach();
   }
   else
   {
-    _postInRemote(::std::move(fiber_task), ::std::move(params));
+    _postInRemote(::std::move(fiber_task), { stack_size, std::move(description) });
   }
 }
 
 template <typename Callable>
 void Context::dispatch(Callable fiber_task)
 {
-  dispatch(::std::move(fiber_task), TaskParameters());
+  dispatch(::std::move(fiber_task), 0, {});
 }
 
 template <typename Callable>
-void Context::dispatch(Callable fiber_task, TaskParameters params)
+void Context::dispatch(Callable fiber_task, ::std::size_t stack_size, ::std::string description)
 {
-  if (_isRunningInThis())
+  if (isRunningInThis())
   {
     Fiber f;
     f.setPolicy(::boost::fibers::launch::dispatch);
-    f.setStackSize(params._stack_size != 0 ? params._stack_size : _stack_size_in_context);
-    f.setDescription(::std::move(params._description));
+    f.setStackSize(stack_size != 0 ? stack_size : _stack_size_in_context);
+    f.setDescription(::std::move(description));
     f.start(::std::move(fiber_task));
     f.detach();
   }
   else
   {
-    _postInRemote(::std::move(fiber_task), ::std::move(params));
+    _postInRemote(::std::move(fiber_task), { stack_size, std::move(description) });
   }
 }
 
@@ -77,14 +77,14 @@ template <typename Callable>
 auto Context::call(Callable fiber_task)
   -> ::std::invoke_result_t<Callable>
 {
-  return call(::std::move(fiber_task), TaskParameters());
+  return call(::std::move(fiber_task), 0, {});
 }
 
 template <typename Callable>
-auto Context::call(Callable fiber_task, TaskParameters params)
+auto Context::call(Callable fiber_task, ::std::size_t stack_size, ::std::string description)
   -> ::std::invoke_result_t<Callable>
 {
-  if (_isRunningInThis())
+  if (isRunningInThis())
   {
     return fiber_task();
   }
@@ -93,7 +93,7 @@ auto Context::call(Callable fiber_task, TaskParameters params)
     fiber::PackagedTask<::std::invoke_result_t<Callable>()> packaged_task(::std::move(fiber_task));
     auto future_result = packaged_task.get_future();
 
-    _postInRemote(::std::move(packaged_task), ::std::move(params));
+    _postInRemote(::std::move(packaged_task), { stack_size, std::move(description) });
 
     return future_result.get();
   }
