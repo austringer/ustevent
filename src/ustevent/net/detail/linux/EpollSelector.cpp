@@ -77,7 +77,7 @@ void EpollSelector::select(int timeout_milliseconds)
 auto EpollSelector::registerObject(Descriptor descriptor)
   -> ::std::tuple<EventNotifier *, int>
 {
-  EventNotifier * event_notifier = _allocNotifier();
+  EventNotifier * event_notifier = _allocateNotifier();
   event_notifier->_descriptor = descriptor;
 
   epoll_event event;
@@ -173,10 +173,10 @@ auto EpollSelector::_readSignal()
   return signal_info.ssi_signo;
 }
 
-auto EpollSelector::_allocNotifier()
+auto EpollSelector::_allocateNotifier()
   -> EventNotifier *
 {
-  return _notifier_pool.alloc();
+  return _notifier_pool.allocate();
 }
 
 void EpollSelector::_freeNotifier(EventNotifier * event_notifier)

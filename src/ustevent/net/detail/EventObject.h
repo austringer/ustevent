@@ -14,11 +14,11 @@ namespace detail
 class EventSelector;
 class EventNotifier;
 
-template <typename Device>
+template <typename Resource>
 class EventObject
 {
 public:
-  EventObject(EventSelector & event_selector, Device && opened_device);
+  EventObject(EventSelector & event_selector, Resource && opened_device);
 
   ~EventObject() noexcept;
 
@@ -26,10 +26,10 @@ public:
     -> int;
 
   auto get()
-    -> Device &;
+    -> Resource &;
 
   auto release()
-    -> Device &&;
+    -> Resource &&;
 
   void wait(EventType event);
 
@@ -47,7 +47,7 @@ private:
   EventSelector &     _event_selector;
   EventNotifier *     _event_notifier = nullptr;
 
-  Device              _device;
+  Resource            _resource;
 };
 
 }

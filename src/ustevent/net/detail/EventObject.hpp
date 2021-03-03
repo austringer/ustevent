@@ -12,78 +12,78 @@ namespace net
 namespace detail
 {
 
-template <typename Device>
-EventObject<Device>::EventObject(EventSelector & event_selector, Device && opened_device)
+template <typename Resource>
+EventObject<Resource>::EventObject(EventSelector & event_selector, Resource && opened_device)
   : _event_selector(event_selector)
-  , _device(::std::move(opened_device))
+  , _resource(::std::move(opened_device))
 {}
 
-template <typename Device>
-EventObject<Device>::~EventObject() noexcept
+template <typename Resource>
+EventObject<Resource>::~EventObject() noexcept
 {
   if (_event_notifier)
   {
-    _device.close();
+    _resource.close();
     _event_selector.deregisterObject(_event_notifier);
     _event_notifier = nullptr;
   }
 }
 
-template <typename Device>
-auto EventObject<Device>::init()
+template <typename Resource>
+auto EventObject<Resource>::init()
   -> int
 {
   int error;
-  ::std::tie(_event_notifier, error) = _event_selector.registerObject(_device.descriptor());
+  ::std::tie(_event_notifier, error) = _event_selector.registerObject(_resource.descriptor());
   return error;
 }
 
-template <typename Device>
-auto EventObject<Device>::get()
-  -> Device &
+template <typename Resource>
+auto EventObject<Resource>::get()
+  -> Resource &
 {
-  return _device;
+  return _resource;
 }
 
-template <typename Device>
-auto EventObject<Device>::release()
-  -> Device &&
+template <typename Resource>
+auto EventObject<Resource>::release()
+  -> Resource &&
 {
   if (_event_notifier)
   {
     _event_selector.deregisterObject(_event_notifier);
     _event_notifier = nullptr;
   }
-  return ::std::move(_device);
+  return ::std::move(_resource);
 }
 
-template <typename Device>
-void EventObject<Device>::wait(EventType event)
+template <typename Resource>
+void EventObject<Resource>::wait(EventType event)
 {
   assert(_event_notifier);
   _event_notifier->_semaphores[event].wait();
 }
 
-template <typename Device>
+template <typename Resource>
 template <typename Rep, typename Period>
-auto EventObject<Device>::waitFor(EventType event, std::chrono::duration<Rep, Period> const& time_duration)
+auto EventObject<Resource>::waitFor(EventType event, std::chrono::duration<Rep, Period> const& time_duration)
   -> bool
 {
   assert(_event_notifier);
   return _event_notifier->_semaphores[event].waitFor(time_duration);
 }
 
-template <typename Device>
+template <typename Resource>
 template <class Clock, class Duration>
-auto EventObject<Device>::waitUntil(EventType event, std::chrono::time_point<Clock, Duration> const& time_point)
+auto EventObject<Resource>::waitUntil(EventType event, std::chrono::time_point<Clock, Duration> const& time_point)
   -> bool
 {
   assert(_event_notifier);
   return _event_notifier->_semaphores[event].waitUntil(time_point);
 }
 
-template <typename Device>
-void EventObject<Device>::notify(EventType event)
+template <typename Resource>
+void EventObject<Resource>::notify(EventType event)
 {
   assert(_event_notifier);
   _event_notifier->_semaphores[event].notify();

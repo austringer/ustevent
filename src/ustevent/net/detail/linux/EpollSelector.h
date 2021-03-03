@@ -55,7 +55,7 @@ private:
   auto _readSignal()
     -> ::std::uint32_t;
 
-  auto _allocNotifier()
+  auto _allocateNotifier()
     -> EventNotifier *;
 
   void _freeNotifier(EventNotifier * event_notifier);
